@@ -209,9 +209,10 @@
     render(currentKey());
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
+  // defer 스크립트 실행 중에는 readyState가 'interactive'이므로, 기능 스크립트가 화면을 등록한 뒤(DOMContentLoaded) 시작한다.
+  if (document.readyState === 'complete') {
     init();
+  } else {
+    document.addEventListener('DOMContentLoaded', init);
   }
 })();

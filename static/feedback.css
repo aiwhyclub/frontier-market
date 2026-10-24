@@ -1,0 +1,31 @@
+/* S0 dashboard and buyer opinion styles (feedback.js). Uses the shared tokens of styles.css. */
+.fb-page-head h1 { margin: 0 0 4px; }
+.fb-page-head p, .fb-hint, .fb-meta { color: var(--muted, #5b6470); font-size: 0.9rem; }
+.fb-section { margin: 24px 0; padding: 16px; border: 1px solid var(--line, #d9dde3); border-radius: 8px; }
+.fb-section h2 { font-size: 1.1rem; margin: 0 0 12px; }
+.fb-section h3 { font-size: 1rem; margin: 16px 0 8px; }
+.fb-stage-grid { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+.fb-stage-card a { display: grid; gap: 4px; padding: 10px; border: 1px solid var(--line, #d9dde3); border-radius: 6px; text-decoration: none; color: inherit; }
+.fb-stage-code { font-size: 0.75rem; color: var(--muted, #5b6470); }
+.fb-stage-count { font-size: 1.1rem; }
+.fb-list { list-style: none; padding: 0; margin: 0; }
+.fb-list li { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line, #e5e8ec); }
+.fb-node-label { font-weight: 600; }
+.fb-badge { font-size: 0.75rem; padding: 1px 6px; border-radius: 999px; border: 1px solid #b07a00; color: #7a5300; }
+.fb-kind { font-size: 0.8rem; padding: 1px 6px; border-radius: 4px; background: #eef2f7; }
+.fb-actions, .fb-tabs, .fb-links { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+.fb-tab[aria-selected="true"] { font-weight: 700; text-decoration: underline; }
+.fb-state { color: var(--muted, #5b6470); }
+.fb-state-error { color: #a33; }
+.fb-form { display: grid; gap: 12px; max-width: 640px; }
+.fb-field { display: grid; gap: 4px; }
+.fb-detail { margin-top: 16px; padding-top: 12px; border-top: 1px dashed var(--line, #d9dde3); }
+.fb-detail-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.fb-detail-head h3 { margin: 0; }
+.fb-msg { color: #a33; min-height: 1em; margin: 0; }
+.fb-trail { margin-top: 12px; }
+.fb-chooser { display: grid; gap: 8px; min-width: 280px; }
+@media (max-width: 600px) {
+  .fb-section { padding: 12px; }
+  .fb-actions .fm-btn, .fb-links .fm-btn { flex: 1 1 auto; }
+}
