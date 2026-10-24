@@ -10,6 +10,7 @@ from contextlib import closing
 from flask import Blueprint, current_app, jsonify, request
 
 from backend import db
+from backend.features import aidraft
 
 bp = Blueprint("catalog", __name__, url_prefix="/api/catalog")
 
@@ -404,11 +405,8 @@ def list_cards():
     return jsonify(items=items[offset:offset + limit], total=total)
 
 
-@bp.post("/")
-def create_card():
-    data, err = _json_body()
-    if err:
-        return err
+def _create(data, run=None):
+    """Validate and store a new card. `run` (an ai_draft_runs row) marks it as an adopted AI draft."""
     try:
         errors = {}
         changes = _normalize_fields(data)
@@ -427,14 +425,98 @@ def create_card():
     fields.setdefault("evidence_refs", [])
     fields.update({"source_ids": [], "expert_ids": [], "work_ids": []})
     with closing(_conn()) as conn, db.write_transaction(conn):
+        if run is not None:
+            fresh = aidraft.get_run(conn, run["id"], "F10.4")
+            if fresh["adopted_at"]:
+                return _error(409, "already_adopted", "이미 채택한 AI 초안입니다.")
+            source_ids = list(fresh["detail"].get("source_ids") or [])
+            fields["source_ids"] = source_ids
+            fields["ai_draft"] = {"run_id": run["id"], "model": run["model"],
+                                  "label": aidraft.label(run["model"]),
+                                  "note": "AI 초안을 사람이 검토·수정해 채택한 카드입니다. 권리·수요·전문성 승인이 아닙니다."}
         card_id = db.create_record(conn, "catalog", title=title, status="draft",
                                    synthetic=synthetic, body=fields.get("summary"), fields=fields)
+        if run is not None:
+            _store_refs(conn, card_id, fields["source_ids"], [], [], {"sources": [], "experts": [], "works": []})
+            aidraft.mark_adopted(conn, run["id"])
         record = db.get_record(conn, "catalog", card_id)
         detail = _detail(conn, record)
         conn.execute("UPDATE records SET status = ? WHERE type='catalog' AND id=?",
                      (detail["card"]["status"], card_id))
         detail = _detail(conn, db.get_record(conn, "catalog", card_id))
     return jsonify(detail), 201
+
+
+@bp.post("/")
+def create_card():
+    data, err = _json_body()
+    if err:
+        return err
+    return _create(data)
+
+
+DRAFT_KEYS = ("title", "domain", "summary", "judgement_task", "target_capability", "expected_deliverables")
+DRAFT_SYSTEM = (
+    "당신은 도제식 숙련 판단을 구매 가능한 판단 과제로 정리하는 보조자입니다. 주어진 자료만 근거로 "
+    "JSON 객체 하나만 출력합니다. 키: title, domain, summary, judgement_task, target_capability, "
+    "expected_deliverables. 자료에 없는 사실·가격·권리를 만들지 않습니다.")
+
+
+@bp.get("/ai-status")
+def ai_status():
+    return jsonify(aidraft.status("F10.4"))
+
+
+@bp.post("/ai-draft")
+def ai_draft():
+    """F10.4: draft a task card from linked source materials. Nothing is saved until a person adopts it."""
+    data, err = _json_body()
+    if err:
+        return err
+    ids = data.get("source_ids")
+    if not isinstance(ids, list) or not ids or not all(isinstance(v, str) and v.strip() for v in ids) \
+            or len(ids) > MAX_ITEMS:
+        return _error(422, "validation_failed", "초안의 원천 자료를 1개 이상 선택해 주세요.",
+                      fields={"source_ids": "자료 ID 목록이 필요합니다."})
+    ids = list(dict.fromkeys(v.strip() for v in ids))
+    with closing(_conn()) as conn, db.write_transaction(conn):
+        mats = []
+        for sid in ids:
+            rec = db.get_record(conn, "materials", sid)
+            if rec is None:
+                return _error(422, "validation_failed", f"{sid}: 존재하지 않는 자료입니다.",
+                              fields={"source_ids": f"{sid}: 존재하지 않는 자료입니다."})
+            mats.append(rec)
+        prompt = "\n\n".join(f"[자료 {m['id']}] {m['title']}\n{(m.get('body') or '')[:1500]}" for m in mats)
+        parsed, info = aidraft.draft(conn, "F10.4", DRAFT_SYSTEM, prompt, "catalog", None,
+                                     detail={"source_ids": ids})
+    draft = None
+    if parsed is not None:
+        draft = {}
+        limits = {"title": MAX_TITLE, "domain": MAX_TITLE, "target_capability": MAX_TITLE}
+        for key in DRAFT_KEYS:
+            value = aidraft.clip(parsed.get(key), limits.get(key, MAX_TEXT))
+            if value:
+                draft[key] = value
+        if not draft:
+            draft = None
+    if draft is None and info["ok"]:
+        info.update(ok=False, error="empty_draft", label=aidraft.label(None), mode="manual")
+    return jsonify(draft=draft, source_ids=ids, ai=info, adoptable=draft is not None,
+                   notice="AI 초안은 저장되지 않았습니다. 읽고 수정한 뒤 채택해야 카드가 만들어집니다. "
+                          "수동 작성은 언제든 쓸 수 있습니다.")
+
+
+@bp.post("/ai-draft/<run_id>/adopt")
+def ai_draft_adopt(run_id):
+    data, err = _json_body()
+    if err:
+        return err
+    with closing(_conn()) as conn:
+        run = aidraft.get_run(conn, run_id, "F10.4")
+    if run is None or not run["ok"]:
+        return _error(404, "not_found", "채택할 수 있는 AI 초안을 찾을 수 없습니다.")
+    return _create(data, run)
 
 
 @bp.get("/<card_id>")
@@ -531,5 +613,5 @@ def link_card(card_id):
 
 
 def init_schema(conn):
-    """No extra tables: card data lives in the shared records store."""
-    return None
+    """Card data lives in the shared records store; only the AI attempt log is extra."""
+    aidraft.init_schema(conn)
