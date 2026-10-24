@@ -82,7 +82,7 @@
   }
 
   /* ---- topbar: login / logout entry ---- */
-  window.addEventListener('fm:langchange', function () {
+  document.addEventListener('fm:langchange', function () {
     var old = document.querySelector('.topbar .fm-demo-bar');
     if (old) { old.remove(); topbarActions(); }
   });
