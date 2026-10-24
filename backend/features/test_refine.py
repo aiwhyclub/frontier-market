@@ -20,6 +20,7 @@ class RefineTest(unittest.TestCase):
         if "refine" not in self.app.blueprints:
             self.app.register_blueprint(refine.bp)
         self.client = self.app.test_client()
+        self.client.environ_base["HTTP_X_FM_LANG"] = "ko"  # these tests assert the Korean message text
 
     def tearDown(self):
         self.tmp.cleanup()

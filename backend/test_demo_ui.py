@@ -5,6 +5,7 @@ from datetime import timedelta
 from pathlib import Path
 
 from backend.app import create_app
+from backend.i18n_testutil import tk
 from backend.test_public import END, ENV, OP_TOKEN, ROOT, Clock, PublicBase
 
 
@@ -65,7 +66,7 @@ class StaticWiringTest(PublicBase):
 
     def test_end_notice_text_and_touch_targets_present(self):
         text = (ROOT / "static" / "demo.js").read_text(encoding="utf-8")
-        self.assertIn("공개 시연이 종료되었습니다", text)
+        self.assertIn(tk("공개 시연이 종료되었습니다"), text)
         css = (ROOT / "static" / "styles.css").read_text(encoding="utf-8")
         self.assertIn(".fm-demo-input{min-height:44px", css)
 

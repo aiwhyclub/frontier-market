@@ -18,6 +18,7 @@ class _CompanyBase(unittest.TestCase):
         if "company" not in self.app.blueprints:
             self.app.register_blueprint(company.bp)
         self.client = self.app.test_client()
+        self.client.environ_base["HTTP_X_FM_LANG"] = "ko"  # these tests assert the Korean message text
 
     def tearDown(self):
         self.tmp.cleanup()

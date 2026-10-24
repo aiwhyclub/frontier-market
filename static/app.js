@@ -1,4 +1,4 @@
-/* Frontier Market shell: hash routing for S0 dashboard and S1~S7 stages.
+/* Frontier Lab Market shell: hash routing for S0 dashboard and S1~S7 stages.
  * Each screen renders a title and an empty state with one next action.
  * next: { href } opens another screen; { form } dispatches a
  * 'fm:open-form' event on document for the form layer (ui-forms.js). */
@@ -10,75 +10,75 @@
   var SCREENS = {
     dashboard: {
       code: 'S0',
-      nav: '대시보드',
-      title: '대시보드',
-      lede: '단계별 현황과 다음 작업을 한눈에 봅니다. 지금은 합성 예시 기준의 빈 워크스페이스입니다.',
-      emptyTitle: '아직 시작한 작업이 없습니다',
-      emptyBody: '자료 수집부터 시작하면 전문가 → 과제 → 검증 → 가상회사 순서로 이어집니다. 아래 단계를 선택해 현재 위치를 옮길 수 있습니다.',
-      next: { label: 'S1 자료 수집 시작하기', href: '#s1' }
+      nav: t('app.dashboard'),
+      title: t('app.dashboard'),
+      lede: t('app.see_progress_and_next_steps'),
+      emptyTitle: t('app.nothing_has_been_started_yet'),
+      emptyBody: t('app.start_with_collecting_materials_the'),
+      next: { label: t('app.start_s1_collect_materials'), href: '#s1' }
     },
     s1: {
       code: 'S1',
-      nav: '자료 수집',
-      title: '자료 수집·체계화',
-      lede: '공개 URL이나 직접 입력한 본문을 원문·출처와 함께 저장하고 구조화 초안을 만듭니다.',
-      emptyTitle: '저장된 자료가 없습니다',
-      emptyBody: '공개 URL을 수집하거나 본문을 직접 입력해 첫 자료를 저장하세요. URL 수집이 실패해도 입력한 내용은 보존되고 본문 직접 입력으로 이어갈 수 있습니다.',
-      next: { label: '자료 등록 열기', form: 'source' }
+      nav: t('app.collect'),
+      title: t('app.collect_and_organize_materials'),
+      lede: t('app.save_a_public_url_or'),
+      emptyTitle: t('app.no_materials_saved_yet'),
+      emptyBody: t('app.collect_a_public_url_or'),
+      next: { label: t('app.open_material_form'), form: 'source' }
     },
     s2: {
       code: 'S2',
       nav: 'DB',
-      title: '지식 DB',
-      lede: '저장된 자료·사람·작업을 유형별로 찾고 서로 연결된 항목을 따라갑니다.',
-      emptyTitle: 'DB가 아직 비어 있습니다',
-      emptyBody: '검색 결과가 없는 것이 아니라 저장된 항목이 아직 없습니다. S1에서 자료를 먼저 등록하면 여기에서 찾을 수 있습니다.',
-      next: { label: 'S1 자료 수집으로 이동', href: '#s1' }
+      title: t('app.knowledge_db'),
+      lede: t('app.find_saved_materials_people_and'),
+      emptyTitle: t('app.the_db_is_still_empty'),
+      emptyBody: t('app.this_is_not_an_empty'),
+      next: { label: t('app.go_to_s1_collect'), href: '#s1' }
     },
     s3: {
       code: 'S3',
-      nav: '전문가',
-      title: '전문가 모집·평가·승인 후 업로드',
-      lede: '후보를 등록하고 사람이 평가한 뒤, 승인된 전문가의 작업만 업로드합니다.',
-      emptyTitle: '등록된 후보가 없습니다',
-      emptyBody: '후보를 등록하고 평가 기준에 따라 사람이 판정하세요. 승인 전에는 작업을 업로드할 수 없습니다.',
-      next: { label: '후보 등록 열기', form: 'expert' }
+      nav: t('app.experts'),
+      title: t('app.expert_recruiting_evaluation_and_upload'),
+      lede: t('app.register_candidates_have_a_person'),
+      emptyTitle: t('app.no_candidates_registered'),
+      emptyBody: t('app.register_a_candidate_and_have'),
+      next: { label: t('app.open_candidate_form'), form: 'expert' }
     },
     s4: {
       code: 'S4',
-      nav: '카탈로그',
-      title: '기술 카탈로그 제작·DB화',
-      lede: '구매할 판단 과제 카드를 만들고 자료·전문가·작업과 연결합니다.',
-      emptyTitle: '아직 과제 카드가 없습니다',
-      emptyBody: '과제 카드를 하나 만들어 시작하세요. 연결할 자료가 아직 없어도 카드는 저장할 수 있습니다.',
-      next: { label: '과제 카드 만들기', form: 'catalog' }
+      nav: t('app.catalog'),
+      title: t('app.build_the_skill_catalog_as'),
+      lede: t('app.create_judgement_task_cards_to'),
+      emptyTitle: t('app.no_task_cards_yet'),
+      emptyBody: t('app.start_by_creating_one_task'),
+      next: { label: t('app.create_task_card'), form: 'catalog' }
     },
     s5: {
       code: 'S5',
-      nav: '정제·검증',
-      title: '도제 작업 정제·교정·검증',
-      lede: '원문과 정제 초안을 나란히 비교하고 사람이 승인 또는 반려합니다.',
-      emptyTitle: '정제할 작업이 없습니다',
-      emptyBody: '정제는 승인된 전문가의 작업 원문이 있어야 시작할 수 있습니다. 원문이 없다면 S3에서 먼저 후보를 승인하고 작업을 업로드하세요.',
-      next: { label: 'S3 전문가로 이동', href: '#s3' }
+      nav: t('app.refine_verify'),
+      title: t('app.refine_correct_and_verify_apprentice'),
+      lede: t('app.compare_the_original_and_the'),
+      emptyTitle: t('app.no_work_to_refine'),
+      emptyBody: t('app.refining_needs_the_original_work'),
+      next: { label: t('app.go_to_s3_experts'), href: '#s3' }
     },
     s6: {
       code: 'S6',
       nav: 'FDE',
-      title: 'FDE 시스템 구축·컨설팅 프로젝트',
-      lede: '무료 AX 목표·범위·단계·산출물을 프로젝트 단위로 관리합니다.',
-      emptyTitle: '등록된 프로젝트가 없습니다',
-      emptyBody: '프로젝트를 등록해 목표와 범위를 정하세요. 현장 수행 사실은 단계별 근거와 함께 따로 기록합니다.',
-      next: { label: '프로젝트 등록 열기', form: 'project' }
+      title: t('app.fde_system_build_and_consulting'),
+      lede: t('app.manage_free_ax_goals_scope'),
+      emptyTitle: t('app.no_projects_registered'),
+      emptyBody: t('app.register_a_project_to_set'),
+      next: { label: t('app.open_project_form'), form: 'project' }
     },
     s7: {
       code: 'S7',
-      nav: '가상회사',
-      title: 'LLM 학습·평가용 가상회사',
-      lede: '검증된 작업 데이터로 가상회사 과제 환경을 만들고 실행합니다.',
-      emptyTitle: '생성된 가상회사가 없습니다',
-      emptyBody: '승인된 작업과 프로젝트가 연결되어야 생성할 수 있습니다. 조건이 부족하면 어떤 항목을 보완해야 하는지 안내합니다.',
-      next: { label: 'S5 정제·검증 확인하기', href: '#s5' }
+      nav: t('app.virtual_company'),
+      title: t('app.virtual_company_for_llm_training'),
+      lede: t('app.build_and_run_virtual_company'),
+      emptyTitle: t('app.no_virtual_company_created'),
+      emptyBody: t('app.approved_work_and_a_project'),
+      next: { label: t('app.check_s5_refine_verify'), href: '#s5' }
     }
   };
 
@@ -116,7 +116,7 @@
         '<span class="stage-desc">' + esc(s.title) + '</span>' +
         '</a></li>';
     }).join('');
-    return '<section aria-labelledby="stage-heading"><h2 class="section-title" id="stage-heading">단계 바로가기</h2>' +
+    return '<section aria-labelledby="stage-heading"><h2 class="section-title" id="stage-heading">' + t('app.jump_to_a_stage') + '</h2>' +
       '<ul class="stage-grid">' + cards + '</ul></section>';
   }
 
@@ -133,7 +133,7 @@
           '<h2 id="empty-title">' + esc(s.emptyTitle) + '</h2>' +
           '<p>' + esc(s.emptyBody) + '</p>' +
           '<div class="next-action">' +
-            '<span class="next-action-label">다음 행동</span>' +
+            '<span class="next-action-label">' + t('app.next_action') + '</span>' +
             nextActionHtml(s.next) +
           '</div>' +
         '</section>';
@@ -151,7 +151,7 @@
       window.FMScreens[key](document.getElementById('screen-root'));
     }
 
-    document.title = s.code + ' ' + s.title + ' · Frontier Market';
+    document.title = s.code + ' ' + s.title + ' · Frontier Lab Market';
     document.getElementById('breadcrumb-current').textContent = s.code + ' ' + s.nav;
 
     var links = document.querySelectorAll('#primary-nav a[data-screen]');
@@ -179,7 +179,7 @@
     }
     sidebar.classList.toggle('is-open', open);
     toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-    toggle.textContent = open ? '단계 메뉴 닫기' : '단계 메뉴 열기';
+    toggle.textContent = open ? t('app.close_stage_menu') : t('app.open_stage_menu');
   }
 
   function onHashChange() {

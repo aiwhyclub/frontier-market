@@ -20,6 +20,7 @@ class AC13Test(unittest.TestCase):
         self.db_path = Path(self.tmp.name) / "ac13.sqlite3"
         self.app = create_app(ROOT, self.db_path)
         self.client = self.app.test_client()
+        self.client.environ_base["HTTP_X_FM_LANG"] = "ko"  # these tests assert the Korean message text
 
     def tearDown(self):
         self.tmp.cleanup()

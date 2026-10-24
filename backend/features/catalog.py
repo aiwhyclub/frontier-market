@@ -150,7 +150,9 @@ def _axes(data, errors):
             errors["axes"] = "각 축은 근거 문자열 또는 '미확인'이어야 합니다."
             return None
         note = raw.strip()
-        if note == UNKNOWN_WORD or note.startswith(UNKNOWN_WORD + ":"):
+        lowered = note.lower()
+        if (note == UNKNOWN_WORD or note.startswith(UNKNOWN_WORD + ":")
+                or lowered == "unconfirmed" or lowered.startswith("unconfirmed:")):
             out[key] = {"status": "unknown", "note": note}
         else:
             out[key] = {"status": "evidence", "note": note}

@@ -4,20 +4,20 @@
   window.FMScreens = window.FMScreens || {};
 
   var REASONS = {
-    invalid_url: '주소 형식이 올바르지 않습니다.',
-    unsupported_scheme: 'http 또는 https 주소만 가져올 수 있습니다.',
-    blocked_port: '80 또는 443 포트의 공개 주소만 가져올 수 있습니다.',
-    blocked_address: '내부 또는 비공개 주소라서 수집하지 않았습니다.',
-    dns_error: '주소를 찾지 못했습니다.',
-    http_error: '서버가 정상 응답을 주지 않았습니다.',
-    too_many_redirects: '리다이렉트가 너무 많습니다.',
-    unsupported_type: 'HTML·텍스트·JSON 자료만 가져올 수 있습니다. PDF·영상은 본문을 직접 붙여 넣어 주세요.',
-    too_large: '자료가 500KiB를 넘었습니다.',
-    text_too_long: '본문이 10만 자를 넘었습니다.',
-    timeout: '10초 안에 응답이 없었습니다.',
-    network_error: '연결하지 못했습니다.',
-    empty: '읽을 수 있는 본문이 없습니다.',
-    unreadable: '문자 코드를 읽을 수 없습니다.'
+    invalid_url: t('collect.the_address_format_is_not'),
+    unsupported_scheme: t('collect.only_http_or_https_addresses'),
+    blocked_port: t('collect.only_public_addresses_on_port'),
+    blocked_address: t('collect.this_is_an_internal_or'),
+    dns_error: t('collect.the_address_could_not_be'),
+    http_error: t('collect.the_server_did_not_respond'),
+    too_many_redirects: t('collect.too_many_redirects'),
+    unsupported_type: t('collect.only_html_text_and_json'),
+    too_large: t('collect.the_material_is_larger_than'),
+    text_too_long: t('collect.the_text_is_longer_than'),
+    timeout: t('collect.no_response_within_10_seconds'),
+    network_error: t('collect.could_not_connect'),
+    empty: t('collect.there_is_no_readable_text'),
+    unreadable: t('collect.the_character_encoding_could_not')
   };
 
   function el(tag, attrs, children) {
@@ -37,7 +37,7 @@
   }
 
   function badge() {
-    return el('span', { class: 'cl-badge', text: '합성' });
+    return el('span', { class: 'cl-badge', text: t('catalog.synthetic') });
   }
 
   function request(method, url, body) {
@@ -51,14 +51,14 @@
         return { ok: res.ok, status: res.status, data: data };
       });
     }, function () {
-      return { ok: false, status: 0, data: { error: { code: 'network', message: '서버에 연결하지 못했습니다. 입력은 그대로 두었으니 다시 시도해 주세요.' } } };
+      return { ok: false, status: 0, data: { error: { code: 'network', message: t('collect.could_not_reach_the_server') } } };
     });
   }
 
   function errorText(res) {
     var err = (res.data && res.data.error) || {};
-    var text = err.message || '저장하지 못했습니다. 입력은 그대로 두었습니다.';
-    if (err.reason && REASONS[err.reason]) text += ' 사유: ' + REASONS[err.reason];
+    var text = err.message || t('collect.could_not_save_your_input');
+    if (err.reason && REASONS[err.reason]) text += ' ' + t('collect.reason') + ' ' + REASONS[err.reason];
     if (err.fields) {
       var parts = Object.keys(err.fields).map(function (k) { return k + ': ' + err.fields[k]; });
       if (parts.length) text += ' (' + parts.join(', ') + ')';
@@ -96,20 +96,20 @@
     url.inputMode = 'url';
     var status = el('p', { class: 'cl-status', 'aria-live': 'polite' });
     var form = el('form', { class: 'cl-form' }, [
-      field('공개 주소(URL)', url),
-      el('p', { class: 'cl-hint', text: '공개 페이지만 가져옵니다. 로그인이 필요한 주소와 내부 주소는 수집하지 않습니다.' }),
-      el('button', { type: 'submit', class: 'cl-btn', text: '가져오기' }),
+      field(t('collect.public_address_url'), url),
+      el('p', { class: 'cl-hint', text: t('collect.only_public_pages_are_fetched') }),
+      el('button', { type: 'submit', class: 'cl-btn', text: t('collect.fetch') }),
       status
     ]);
     form.addEventListener('submit', function (ev) {
       ev.preventDefault();
       var btn = form.querySelector('button');
       btn.disabled = true;
-      statusLine(status, '가져오는 중입니다…');
+      statusLine(status, t('collect.fetching'));
       request('POST', '/api/collect/fetch', { url: url.value }).then(function (res) {
         btn.disabled = false;
         if (res.ok) {
-          toast('자료를 저장했습니다.');
+          toast(t('collect.material_saved'));
           onDone(res.data.item.id);
           return;
         }
@@ -117,7 +117,7 @@
         statusLine(status, errorText(res), true);
       });
     });
-    return section('URL로 가져오기', [form]);
+    return section(t('collect.fetch_from_url'), [form]);
   }
 
   function manualForm(onDone) {
@@ -128,45 +128,45 @@
     var body = input('body', '', true);
     var status = el('p', { class: 'cl-status', 'aria-live': 'polite' });
     var form = el('form', { class: 'cl-form' }, [
-      field('제목', title),
-      field('분야', kind),
-      field('유형', sourceType),
-      field('출처 이름', sourceName),
-      field('본문', body),
-      el('p', { class: 'cl-hint', text: '가져오기가 실패해도 여기에 본문을 붙여 넣으면 계속할 수 있습니다. 합성 가공 사례만 등록합니다.' }),
-      el('button', { type: 'submit', class: 'cl-btn', text: '본문 저장' }),
+      field(t('collect.title'), title),
+      field(t('catalog.domain'), kind),
+      field(t('collect.type'), sourceType),
+      field(t('collect.source_name'), sourceName),
+      field(t('collect.body_text'), body),
+      el('p', { class: 'cl-hint', text: t('collect.even_if_fetching_fails_you') }),
+      el('button', { type: 'submit', class: 'cl-btn', text: t('collect.save_text') }),
       status
     ]);
     form.addEventListener('submit', function (ev) {
       ev.preventDefault();
-      statusLine(status, '저장하는 중입니다…');
+      statusLine(status, t('collect.saving'));
       request('POST', '/api/collect/materials', {
         title: title.value, body: body.value, kind: kind.value,
         source_type: sourceType.value, source_name: sourceName.value, synthetic: true
       }).then(function (res) {
         if (res.ok) {
-          toast('본문을 저장했습니다.');
+          toast(t('collect.text_saved'));
           onDone(res.data.item.id);
           return;
         }
         statusLine(status, errorText(res), true);
       });
     });
-    return section('본문 직접 등록', [form]);
+    return section(t('collect.register_text_directly'), [form]);
   }
 
   function listPanel(onOpen) {
-    var status = el('p', { class: 'cl-status', text: '목록을 불러오는 중입니다…', 'aria-live': 'polite' });
+    var status = el('p', { class: 'cl-status', text: t('collect.loading_the_list'), 'aria-live': 'polite' });
     var list = el('ul', { class: 'cl-list' });
     var wrap = el('div', null, [status, list]);
     function load() {
-      statusLine(status, '목록을 불러오는 중입니다…');
+      statusLine(status, t('collect.loading_the_list'));
       list.textContent = '';
       request('GET', '/api/records/materials?limit=100').then(function (res) {
         if (!res.ok) { statusLine(status, errorText(res), true); return; }
         var items = (res.data && res.data.items) || [];
-        if (!items.length) { statusLine(status, '아직 수집한 자료가 없습니다. 위에서 주소를 가져오거나 본문을 직접 등록해 주세요.'); return; }
-        statusLine(status, '자료 ' + items.length + '건');
+        if (!items.length) { statusLine(status, t('collect.no_materials_collected_yet_fetch')); return; }
+        statusLine(status, t('collect.materials') + ' ' + items.length + t('collect.items'));
         items.forEach(function (it) {
           var btn = el('button', { type: 'button', class: 'cl-link' }, [
             el('span', { text: it.title }),
@@ -179,11 +179,11 @@
       });
     }
     load();
-    return { node: section('수집한 자료', [wrap]), reload: load };
+    return { node: section(t('collect.collected_materials'), [wrap]), reload: load };
   }
 
   function detailPanel(id, onChanged) {
-    var box = el('div', { class: 'cl-detail' }, [el('p', { class: 'cl-status', text: '자료를 불러오는 중입니다…' })]);
+    var box = el('div', { class: 'cl-detail' }, [el('p', { class: 'cl-status', text: t('collect.loading_the_material') })]);
     request('GET', '/api/collect/materials/' + encodeURIComponent(id)).then(function (res) {
       box.textContent = '';
       if (!res.ok) {
@@ -204,39 +204,39 @@
     var f = item;
     var head = el('header', { class: 'cl-detail-head' }, [
       el('h3', { text: item.title }), item.synthetic ? badge() : null,
-      el('span', { class: 'cl-meta', text: ' 현재 v' + item.version })
+      el('span', { class: 'cl-meta', text: ' ' + t('collect.current_v') + item.version })
     ]);
     var meta = el('dl', { class: 'cl-kvs' }, [
-      kv('출처 구분', f.origin === 'url' ? '공개 URL 가져오기' : '직접 등록'),
-      kv('요청 주소', f.source_url), kv('최종 주소', f.final_url),
-      kv('수집 시각', f.fetched_at), kv('내용 식별값(SHA-256)', f.content_hash),
-      kv('기록 ID', item.id), kv('개정 횟수', f.revision_count || 0)
+      kv(t('collect.source_type'), f.origin === 'url' ? t('collect.fetched_from_public_url') : t('collect.registered_directly')),
+      kv(t('collect.requested_url'), f.source_url), kv(t('collect.final_url'), f.final_url),
+      kv(t('collect.collected_at'), f.fetched_at), kv(t('collect.content_fingerprint_sha_256'), f.content_hash),
+      kv(t('collect.record_id'), item.id), kv(t('collect.revisions'), f.revision_count || 0)
     ]);
     if (f.source_url) {
-      var openLink = el('a', { href: f.final_url || f.source_url, target: '_blank', rel: 'noopener noreferrer', text: '원출처 열기' });
+      var openLink = el('a', { href: f.final_url || f.source_url, target: '_blank', rel: 'noopener noreferrer', text: t('collect.open_original_source') });
       meta.appendChild(el('div', { class: 'cl-kv' }, [openLink]));
     }
 
     var original = el('section', { class: 'cl-section' }, [
-      el('h4', { text: '원문 (수집 그대로, 정리본과 분리)' }),
+      el('h4', { text: t('collect.original_text_as_collected_kept') }),
       el('pre', { class: 'cl-original', text: item.body || '' }),
-      el('p', { class: 'cl-meta', text: '근거: ' + (f.evidence || '없음') })
+      el('p', { class: 'cl-meta', text: t('collect.evidence') + ' ' + (f.evidence || t('collect.none')) })
     ]);
 
     var revision = revisionForm(item, function (res) {
-      toast(res.data.changed === false ? '바뀐 내용이 없습니다.' : '새 버전으로 저장했습니다.');
+      toast(res.data.changed === false ? t('collect.nothing_has_changed') : t('collect.saved_as_a_new_version'));
       onChanged(item.id);
     });
-    var metaForm = metadataForm(item, function () { toast('정보를 저장했습니다.'); onChanged(item.id); });
+    var metaForm = metadataForm(item, function () { toast(t('collect.information_saved')); onChanged(item.id); });
     var draft = draftPanel(item, function () { onChanged(item.id); }, data.ai);
     var history = historyPanel(data);
 
     box.appendChild(head);
     box.appendChild(meta);
     box.appendChild(original);
-    box.appendChild(section('정보 수정 (같은 버전 번호에서 저장)', [metaForm]));
-    box.appendChild(section('원문·근거 개정 (사유와 담당자 필수)', [revision]));
-    box.appendChild(section('정리 초안 (AI 초안 또는 규칙 초안)', [draft]));
+    box.appendChild(section(t('collect.edit_information_saved_under_the'), [metaForm]));
+    box.appendChild(section(t('collect.revise_text_and_evidence_reason'), [revision]));
+    box.appendChild(section(t('collect.organized_draft_ai_draft_or'), [draft]));
     box.appendChild(history);
   }
 
@@ -250,8 +250,8 @@
     };
     var status = el('p', { class: 'cl-status', 'aria-live': 'polite' });
     var form = el('form', { class: 'cl-form' }, Object.keys(fields).map(function (k) {
-      return field({ title: '제목', kind: '분야', source_type: '유형', source_name: '출처 이름', source_url: '출처 주소' }[k], fields[k]);
-    }).concat([el('button', { type: 'submit', class: 'cl-btn', text: '정보 저장' }), status]));
+      return field({ title: t('collect.title'), kind: t('catalog.domain'), source_type: t('collect.type'), source_name: t('collect.source_name'), source_url: t('collect.source_url') }[k], fields[k]);
+    }).concat([el('button', { type: 'submit', class: 'cl-btn', text: t('collect.save_information') }), status]));
     form.addEventListener('submit', function (ev) {
       ev.preventDefault();
       var payload = { expected_version: item.version };
@@ -271,13 +271,13 @@
     var owner = input('owner', '');
     var status = el('p', { class: 'cl-status', 'aria-live': 'polite' });
     var form = el('form', { class: 'cl-form' }, [
-      field('원문', body), field('근거', evidence), field('개정 사유', reason), field('담당자', owner),
-      el('p', { class: 'cl-hint', text: '저장하면 새 버전이 되고, 이 원문을 쓰는 작업은 재검토가 필요해집니다. 이전 원문은 남습니다.' }),
-      el('button', { type: 'submit', class: 'cl-btn', text: '개정 저장' }), status
+      field(t('collect.original_text'), body), field(t('catalog.evidence'), evidence), field(t('collect.revision_reason'), reason), field(t('collect.owner'), owner),
+      el('p', { class: 'cl-hint', text: t('collect.saving_creates_a_new_version') }),
+      el('button', { type: 'submit', class: 'cl-btn', text: t('collect.save_revision') }), status
     ]);
     form.addEventListener('submit', function (ev) {
       ev.preventDefault();
-      statusLine(status, '저장하는 중입니다…');
+      statusLine(status, t('collect.saving'));
       request('PATCH', '/api/collect/materials/' + encodeURIComponent(item.id), {
         expected_version: item.version, body: body.value, evidence: evidence.value,
         reason: reason.value, owner: owner.value
@@ -292,9 +292,9 @@
   function draftPanel(item, onChanged, ai) {
     var status = el('p', { class: 'cl-status', 'aria-live': 'polite' });
     var out = el('div', null);
-    var draftBtn = el('button', { type: 'button', class: 'cl-btn', text: '정리 초안 만들기' });
+    var draftBtn = el('button', { type: 'button', class: 'cl-btn', text: t('collect.create_organized_draft') });
     draftBtn.addEventListener('click', function () {
-      statusLine(status, '초안을 만드는 중입니다…');
+      statusLine(status, t('collect.creating_the_draft'));
       request('POST', '/api/collect/materials/' + encodeURIComponent(item.id) + '/draft', { expected_version: item.version })
         .then(function (res) {
           if (res.ok) { onChanged(item.id); return; }
@@ -303,23 +303,23 @@
     });
     out.appendChild(draftBtn);
     if (!ai || !ai.adopted) {
-      out.appendChild(el('p', { class: 'cl-meta', text: 'AI 초안 기능이 꺼져 있어 규칙 초안만 만듭니다.' }));
+      out.appendChild(el('p', { class: 'cl-meta', text: t('collect.ai_drafts_are_turned_off') }));
     }
     if (item.draft) {
       var isAi = item.draft.mode === 'ai';
-      out.appendChild(el('p', { class: 'cl-badge', text: isAi ? 'AI 초안 (' + item.draft.model + ')' : '규칙 초안' }));
+      out.appendChild(el('p', { class: 'cl-badge', text: isAi ? t('collect.ai_draft') + item.draft.model + ')' : t('collect.rule_based_draft') }));
       if (item.draft.ai_failure) {
-        out.appendChild(el('p', { class: 'cl-meta', text: 'AI 초안 실패(' + item.draft.ai_failure.error + ') — 규칙 초안으로 계속합니다.' }));
+        out.appendChild(el('p', { class: 'cl-meta', text: t('collect.ai_draft_failed') + item.draft.ai_failure.error + t('collect.continuing_with_the_rule_based') }));
       }
       out.appendChild(el('pre', { class: 'cl-draft', text: item.draft.text }));
-      out.appendChild(el('p', { class: 'cl-meta', text: '초안 출처: ' + (isAi ? 'AI(채택 전 초안)' : '규칙 기반') + ' · 원문 식별값 ' + String(item.draft.body_hash).slice(0, 12) + '…' }));
+      out.appendChild(el('p', { class: 'cl-meta', text: t('collect.draft_source') + ' ' + (isAi ? t('collect.ai_draft_before_adoption') : t('collect.rule_based')) + ' ' + t('collect.original_fingerprint') + ' ' + String(item.draft.body_hash).slice(0, 12) + '…' }));
       var reviewer = input('reviewer', '');
       var notes = input('correction_notes', '');
       var corrected = input('text', item.draft.text, true);
-      var adoptBtn = el('button', { type: 'button', class: 'cl-btn', text: '초안 그대로 채택' });
-      var correctBtn = el('button', { type: 'button', class: 'cl-btn', text: '교정해서 저장' });
+      var adoptBtn = el('button', { type: 'button', class: 'cl-btn', text: t('collect.adopt_draft_as_is') });
+      var correctBtn = el('button', { type: 'button', class: 'cl-btn', text: t('collect.correct_and_save') });
       adoptBtn.addEventListener('click', function () {
-        if (!reviewer.value.trim()) { statusLine(status, '담당자를 입력해 주세요.', true); return; }
+        if (!reviewer.value.trim()) { statusLine(status, t('collect.please_enter_the_owner'), true); return; }
         request('POST', '/api/collect/materials/' + encodeURIComponent(item.id) + '/organized',
           { expected_version: item.version, action: 'adopt', reviewer: reviewer.value }).then(function (res) {
             if (res.ok) { onChanged(item.id); return; }
@@ -335,16 +335,16 @@
           });
       });
       out.appendChild(el('div', { class: 'cl-form' }, [
-        field('담당자', reviewer), field('교정 사유', notes), field('교정본', corrected),
+        field(t('collect.owner'), reviewer), field(t('collect.correction_reason'), notes), field(t('collect.corrected_version'), corrected),
         el('div', { class: 'cl-actions' }, [adoptBtn, correctBtn])
       ]));
     }
     if (item.organized) {
-      var stale = item.organized_stale ? ' · 원문이 바뀌어 다시 확인이 필요합니다' : '';
-      out.appendChild(el('h4', { text: '채택된 정리본 (원문과 별도 저장)' }));
+      var stale = item.organized_stale ? ' ' + t('collect.the_original_changed_and_needs') : '';
+      out.appendChild(el('h4', { text: t('collect.adopted_organized_version_stored_apart') }));
       out.appendChild(el('pre', { class: 'cl-draft', text: item.organized.text }));
-      out.appendChild(el('p', { class: 'cl-meta', text: '정리본 v' + item.organized.organized_version + ' · ' +
-        (item.organized.origin === 'rule_draft_adopted' ? '초안 채택' : '사람 교정') + ' · 담당 ' + item.organized.reviewer + stale }));
+      out.appendChild(el('p', { class: 'cl-meta', text: t('collect.organized_version_v') + item.organized.organized_version + ' · ' +
+        (item.organized.origin === 'rule_draft_adopted' ? t('collect.draft_adopted') : t('collect.human_correction')) + ' ' + t('collect.owner_2') + ' ' + item.organized.reviewer + stale }));
     }
     out.appendChild(status);
     return out;
@@ -353,7 +353,7 @@
   function historyPanel(data) {
     var events = (data.events || []).map(function (e) {
       return el('li', null, [el('span', { text: e.created_at + ' · ' + e.kind + ' · v' + (e.from_version || '?') + '→v' + (e.to_version || '?') +
-        (e.reason ? ' · 사유: ' + e.reason : '') + (e.owner ? ' · 담당: ' + e.owner : '') })]);
+        (e.reason ? ' ' + t('collect.reason_2') + ' ' + e.reason : '') + (e.owner ? ' ' + t('collect.owner_3') + ' ' + e.owner : '') })]);
     });
     var revs = (data.revisions || []).map(function (r) {
       return el('li', null, [el('span', { text: 'v' + r.version + ' · ' + r.created_at })]);
@@ -361,10 +361,10 @@
     var works = (data.dependent_works || []).map(function (w) {
       return el('li', null, [el('span', { text: w.title + ' (v' + w.version + ')' })]);
     });
-    return section('개정·사건 이력', [
-      el('h4', { text: '사건' }), el('ul', { class: 'cl-plain' }, events.length ? events : [el('li', { text: '사건 없음' })]),
-      el('h4', { text: '버전' }), el('ul', { class: 'cl-plain' }, revs),
-      el('h4', { text: '이 원문을 쓰는 작업' }), el('ul', { class: 'cl-plain' }, works.length ? works : [el('li', { text: '연결된 작업 없음' })])
+    return section(t('collect.revision_and_event_history'), [
+      el('h4', { text: t('collect.event') }), el('ul', { class: 'cl-plain' }, events.length ? events : [el('li', { text: t('collect.no_events') })]),
+      el('h4', { text: t('collect.version') }), el('ul', { class: 'cl-plain' }, revs),
+      el('h4', { text: t('collect.work_that_uses_this_original') }), el('ul', { class: 'cl-plain' }, works.length ? works : [el('li', { text: t('collect.no_linked_work') })])
     ]);
   }
 
@@ -375,7 +375,7 @@
 
     function openDetail(id) {
       detailHost.textContent = '';
-      detailHost.appendChild(el('button', { type: 'button', class: 'cl-btn cl-ghost', text: '목록으로' }, []));
+      detailHost.appendChild(el('button', { type: 'button', class: 'cl-btn cl-ghost', text: t('collect.back_to_list') }, []));
       detailHost.firstChild.addEventListener('click', function () { detailHost.textContent = ''; });
       detailHost.appendChild(detailPanel(id, function (changedId) { openDetail(changedId); list.reload(); }));
       detailHost.scrollIntoView && detailHost.scrollIntoView({ block: 'start' });
@@ -384,8 +384,8 @@
     function onCreated(id) { list.reload(); openDetail(id); }
 
     container.appendChild(el('div', { class: 'cl-screen' }, [
-      el('header', { class: 'cl-head' }, [el('h2', { text: 'S1 자료 수집' }),
-        el('p', { class: 'cl-hint', text: '합성 가공 사례·공개 연습자료만 등록합니다. 원문은 덮어쓰지 않습니다.' })]),
+      el('header', { class: 'cl-head' }, [el('h2', { text: t('collect.s1_collect') }),
+        el('p', { class: 'cl-hint', text: t('collect.only_synthetic_or_fabricated_cases') })]),
       fetchForm(container, onCreated),
       manualForm(onCreated),
       list.node,

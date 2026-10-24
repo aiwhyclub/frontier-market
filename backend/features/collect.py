@@ -27,7 +27,7 @@ from urllib.parse import urljoin, urlsplit
 
 from flask import Blueprint, current_app, jsonify, request
 
-from backend import ai, db
+from backend import ai, db, i18n
 
 bp = Blueprint("collect", __name__, url_prefix="/api/collect")
 
@@ -607,7 +607,7 @@ def parse_ai_draft(text):
         return None
     summary = summary.strip()[:300]
     points = [p.strip()[:200] for p in points[:5]]
-    return {"text": "\n".join(["요약: " + summary] + ["- " + p for p in points]),
+    return {"text": "\n".join([i18n.tr("요약: ") + summary] + ["- " + p for p in points]),
             "summary": summary, "key_points": points}
 
 
@@ -640,7 +640,7 @@ def build_rule_draft(body):
     sentences = [s.strip() for s in re.split(r"(?<=[.!?。])\s+|\n+", body) if s.strip()]
     key_points = [s[:200] for s in sentences[:5]]
     summary = " ".join(sentences[:2])[:300]
-    text = "\n".join(["요약: " + summary] + ["- " + point for point in key_points])
+    text = "\n".join([i18n.tr("요약: ") + summary] + ["- " + point for point in key_points])
     return {"text": text, "summary": summary, "key_points": key_points}
 
 

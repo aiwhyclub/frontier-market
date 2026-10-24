@@ -45,8 +45,15 @@ def status(feature_id):
             "model": model() if adopted(feature_id) else None}
 
 
+def _with_language(system):
+    """The prompts are written in Korean; tell the model which language to answer in (request language)."""
+    from backend import i18n
+    return system + "\n" + i18n.ai_language_instruction()
+
+
 def attempt(feature_id, system, prompt, max_tokens=1200):
     """Call the provider once. Returns (text, run); text is None when not adopted or failed."""
+    system = _with_language(system)
     input_hash = "sha256:" + hashlib.sha256((system + "\n" + prompt).encode()).hexdigest()
     if not adopted(feature_id):
         return None, {"feature": feature_id, "attempted": False, "mode": "rule_based",

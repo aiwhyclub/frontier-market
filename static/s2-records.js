@@ -23,46 +23,46 @@
   window.FMScreens = window.FMScreens || {};
 
   var TYPES = [
-    { key: 'materials', label: '자료', empty: {
-      body: 'S1에서 공개 URL을 수집하거나 본문을 직접 입력하면 첫 자료가 여기에 나타납니다.',
-      form: 'source', action: '자료 등록 열기' } },
-    { key: 'experts', label: '전문가', empty: {
-      body: 'S3에서 후보를 등록하고 사람이 평가하면 여기에 나타납니다. 승인 전에는 작업을 업로드할 수 없습니다.',
-      form: 'expert', action: '후보 등록 열기' } },
-    { key: 'works', label: '작업', empty: {
-      body: '승인된 전문가의 작업은 S3에서 업로드한 뒤 여기에서 원문을 확인할 수 있습니다.',
-      href: '#s3', action: 'S3 전문가로 이동' } },
-    { key: 'catalog', label: '카탈로그', empty: {
-      body: 'S4에서 과제 카드를 만들면 여기에 나타납니다. 연결할 자료가 아직 없어도 카드는 저장할 수 있습니다.',
-      form: 'catalog', action: '과제 카드 만들기' } },
-    { key: 'projects', label: '프로젝트', empty: {
-      body: 'S6에서 프로젝트를 등록하면 목표와 범위가 여기에 나타납니다.',
-      form: 'project', action: '프로젝트 등록 열기' } },
-    { key: 'companies', label: '회사', empty: {
-      body: '가상회사는 S7에서 승인된 작업과 프로젝트가 연결되면 만들어집니다.',
-      href: '#s7', action: 'S7 가상회사로 이동' } },
-    { key: 'rights', label: '권리', empty: {
-      body: '권리 확인은 자료와 작업을 등록할 때 함께 기록됩니다.',
-      href: '#s1', action: 'S1 자료 수집으로 이동' } },
-    { key: 'feedback', label: '의견', empty: {
-      body: '구매자 의견은 S4 카탈로그 화면에서 남길 수 있습니다.',
-      href: '#s4', action: 'S4 카탈로그로 이동' } }
+    { key: 'materials', label: t('collect.materials'), empty: {
+      body: t('s2.collect_a_public_url_or'),
+      form: 'source', action: t('app.open_material_form') } },
+    { key: 'experts', label: t('app.experts'), empty: {
+      body: t('s2.register_a_candidate_in_s3'),
+      form: 'expert', action: t('app.open_candidate_form') } },
+    { key: 'works', label: t('demo.work'), empty: {
+      body: t('s2.work_from_approved_experts_is'),
+      href: '#s3', action: t('app.go_to_s3_experts') } },
+    { key: 'catalog', label: t('app.catalog'), empty: {
+      body: t('s2.create_a_task_card_in'),
+      form: 'catalog', action: t('app.create_task_card') } },
+    { key: 'projects', label: t('demo.project'), empty: {
+      body: t('s2.register_a_project_in_s6'),
+      form: 'project', action: t('app.open_project_form') } },
+    { key: 'companies', label: t('s2.company'), empty: {
+      body: t('s2.a_virtual_company_is_created'),
+      href: '#s7', action: t('s2.go_to_s7_virtual_company') } },
+    { key: 'rights', label: t('s2.rights'), empty: {
+      body: t('s2.rights_confirmation_is_recorded_together'),
+      href: '#s1', action: t('app.go_to_s1_collect') } },
+    { key: 'feedback', label: t('feedback.feedback_2'), empty: {
+      body: t('s2.buyer_feedback_can_be_left'),
+      href: '#s4', action: t('s2.go_to_s4_catalog') } }
   ];
 
   var MSG = {
-    loading: '불러오는 중…',
-    network: '서버에 연결하지 못했어요. 인터넷 연결을 확인한 뒤 다시 시도해 주세요. 화면의 선택은 그대로 있어요.',
-    server: '기록을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.',
-    listNotFound: '이 유형의 기록 목록을 찾을 수 없어요. 다른 유형을 선택해 주세요.',
-    detailNotFound: '이 기록을 찾을 수 없어요. 삭제되었거나 주소가 바뀌었을 수 있어요. 목록에서 다시 찾아 주세요.',
-    retry: '다시 시도',
-    back: '목록으로',
-    pick: '목록에서 기록을 선택하면 원문과 연결된 기록을 볼 수 있어요.',
-    noBody: '이 기록에는 원문 본문이 없어요.',
-    noLinks: '연결된 기록이 없어요.',
-    noReason: '연결 사유가 기록되지 않았어요.',
-    synthetic: '합성 예시',
-    unknownType: '기타 기록'
+    loading: t('demo.loading'),
+    network: t('s2.could_not_reach_the_server'),
+    server: t('s2.could_not_load_records_please'),
+    listNotFound: t('s2.the_record_list_for_this'),
+    detailNotFound: t('s2.this_record_was_not_found'),
+    retry: t('catalog.try_again'),
+    back: t('collect.back_to_list'),
+    pick: t('s2.select_a_record_in_the'),
+    noBody: t('s2.this_record_has_no_original'),
+    noLinks: t('fde.no_linked_records'),
+    noReason: t('s2.no_link_reason_recorded'),
+    synthetic: t('s2.synthetic_example'),
+    unknownType: t('s2.other_records')
   };
 
   // 화면 인스턴스 사이에 유지되는 선택 상태 (화면 이동 뒤 돌아와도 같은 유형을 연다).
@@ -162,10 +162,10 @@
       actions.push(el('a', { className: 'btn btn-primary', href: guide.href, text: guide.action }));
     }
     return el('section', { className: 'empty-state s2-empty', 'aria-labelledby': 's2-empty-title' }, [
-      el('h3', { id: 's2-empty-title', text: info.label + ' 기록이 아직 없습니다' }),
+      el('h3', { id: 's2-empty-title', text: t('s2.no_records_yet', { label: info.label }) }),
       el('p', { text: guide.body }),
       el('div', { className: 'next-action' }, [
-        el('span', { className: 'next-action-label', text: '다음 행동' })
+        el('span', { className: 'next-action-label', text: t('app.next_action') })
       ].concat(actions))
     ]);
   }
@@ -179,7 +179,7 @@
     select.addEventListener('change', function () { setType(select.value); });
     ui.select = select;
     return el('div', { className: 's2-switcher' }, [
-      el('label', { 'for': 's2-type', className: 's2-label', text: '기록 유형' }),
+      el('label', { 'for': 's2-type', className: 's2-label', text: t('s2.record_type') }),
       select
     ]);
   }
@@ -187,7 +187,7 @@
   function buildListPane(ui) {
     ui.count = el('p', { className: 's2-count', role: 'status' });
     ui.listBody = el('div', { className: 's2-list-body' });
-    ui.listHeading = el('h2', { className: 'section-title', id: 's2-list-heading', tabindex: '-1', text: '목록' });
+    ui.listHeading = el('h2', { className: 'section-title', id: 's2-list-heading', tabindex: '-1', text: t('s2.list') });
     return el('section', { className: 's2-list', 'aria-labelledby': 's2-list-heading' }, [
       ui.listHeading,
       buildSearch(ui),
@@ -206,9 +206,9 @@
 
   function describeQuery() {
     var parts = [];
-    if (state.query.q) parts.push('검색어 "' + state.query.q + '"');
-    if (state.query.field) parts.push('분야 "' + state.query.field + '"');
-    if (state.query.status) parts.push('상태 "' + state.query.status + '"');
+    if (state.query.q) parts.push(t('s2.search') + state.query.q + '"');
+    if (state.query.field) parts.push(t('s2.domain') + state.query.field + '"');
+    if (state.query.status) parts.push(t('s2.status') + state.query.status + '"');
     return parts.join(' · ');
   }
 
@@ -242,32 +242,32 @@
   function buildSearch(ui) {
     var qInput = el('input', {
       id: 's2-q', type: 'search', className: 's2-input', name: 'q', maxlength: String(QUERY_MAX),
-      autocomplete: 'off', placeholder: '제목이나 본문 일부'
+      autocomplete: 'off', placeholder: t('s2.part_of_the_title_or')
     });
     var fieldInput = el('input', {
       id: 's2-field', type: 'text', className: 's2-input', name: 'field', maxlength: String(QUERY_MAX),
-      autocomplete: 'off', placeholder: '예: 행정'
+      autocomplete: 'off', placeholder: t('s2.e_g_administration')
     });
     var statusInput = el('input', {
       id: 's2-status', type: 'text', className: 's2-input', name: 'status', maxlength: String(QUERY_MAX),
-      autocomplete: 'off', placeholder: '예: draft'
+      autocomplete: 'off', placeholder: t('s2.e_g_draft')
     });
     ui.search = { q: qInput, field: fieldInput, status: statusInput };
     syncSearchInputs();
 
-    var submit = el('button', { type: 'submit', className: 'btn btn-primary', text: '검색' });
-    var reset = el('button', { type: 'button', className: 'btn btn-secondary', text: '검색 지우기' });
+    var submit = el('button', { type: 'submit', className: 'btn btn-primary', text: t('s2.search_2') });
+    var reset = el('button', { type: 'button', className: 'btn btn-secondary', text: t('s2.clear_search') });
     reset.addEventListener('click', function () { applySearch('', '', ''); });
 
-    var form = el('form', { className: 's2-search', role: 'search', 'aria-label': '기록 검색' }, [
+    var form = el('form', { className: 's2-search', role: 'search', 'aria-label': t('s2.search_records') }, [
       el('div', { className: 's2-field' }, [
-        el('label', { 'for': 's2-q', className: 's2-label', text: '검색어 (제목·본문)' }), qInput
+        el('label', { 'for': 's2-q', className: 's2-label', text: t('s2.search_term_title_body') }), qInput
       ]),
       el('div', { className: 's2-field' }, [
-        el('label', { 'for': 's2-field', className: 's2-label', text: '분야' }), fieldInput
+        el('label', { 'for': 's2-field', className: 's2-label', text: t('catalog.domain') }), fieldInput
       ]),
       el('div', { className: 's2-field' }, [
-        el('label', { 'for': 's2-status', className: 's2-label', text: '상태' }), statusInput
+        el('label', { 'for': 's2-status', className: 's2-label', text: t('rights.status') }), statusInput
       ]),
       el('div', { className: 's2-search-actions' }, [submit, reset])
     ]);
@@ -373,13 +373,13 @@
   }
 
   function searchEmptyBlock(info) {
-    var reset = el('button', { type: 'button', className: 'btn btn-secondary', text: '검색 지우기' });
+    var reset = el('button', { type: 'button', className: 'btn btn-secondary', text: t('s2.clear_search') });
     reset.addEventListener('click', function () { applySearch('', '', ''); });
     return el('section', { className: 'empty-state s2-empty', 'aria-labelledby': 's2-search-empty-title' }, [
-      el('h3', { id: 's2-search-empty-title', text: '조건에 맞는 ' + info.label + ' 기록이 없어요' }),
-      el('p', { text: '검색 조건: ' + describeQuery() + '. 검색어를 줄이거나 분야·상태 조건을 바꾸거나 지워 다시 찾아 보세요.' }),
+      el('h3', { id: 's2-search-empty-title', text: t('s2.no_matching_records', { label: info.label }) }),
+      el('p', { text: t('s2.search_conditions') + ' ' + describeQuery() + t('s2.shorten_the_search_term_change') }),
       el('div', { className: 'next-action' }, [
-        el('span', { className: 'next-action-label', text: '다음 행동' }),
+        el('span', { className: 'next-action-label', text: t('app.next_action') }),
         reset
       ])
     ]);
@@ -388,8 +388,8 @@
   function renderList(info, items, total) {
     ui.listBody.textContent = '';
     ui.count.textContent = isSearching()
-      ? '검색 결과 ' + total + '건 (' + describeQuery() + ')'
-      : '저장된 ' + info.label + ' 기록 ' + total + '건';
+      ? t('s2.search_results_count', { total: total, query: describeQuery() })
+      : t('s2.saved_records_count', { label: info.label, total: total });
     if (!items.length) {
       ui.listBody.appendChild(isSearching() ? searchEmptyBlock(info) : emptyBlock(info));
       return;
@@ -399,13 +399,13 @@
       var id = String(item.id === undefined || item.id === null ? '' : item.id);
       var meta = [];
       if (item.synthetic) meta.push(el('span', { className: 's2-badge', text: MSG.synthetic }));
-      if (item.status) meta.push(el('span', { className: 's2-meta', text: '상태 ' + item.status }));
-      if (item.version !== undefined && item.version !== null) meta.push(el('span', { className: 's2-meta', text: '버전 ' + item.version }));
+      if (item.status) meta.push(el('span', { className: 's2-meta', text: t('rights.status') + ' ' + item.status }));
+      if (item.version !== undefined && item.version !== null) meta.push(el('span', { className: 's2-meta', text: t('collect.version') + ' ' + item.version }));
       if (item.updated_at) meta.push(el('span', { className: 's2-meta', text: formatDate(item.updated_at) }));
       var button = el('button', {
         type: 'button', className: 's2-card-button', 'data-id': id
       }, [
-        el('span', { className: 's2-card-title', text: item.title || '(제목 없음)' }),
+        el('span', { className: 's2-card-title', text: item.title || t('s2.untitled') }),
         el('span', { className: 's2-card-meta' }, meta)
       ]);
       button.addEventListener('click', function () { selectRecord(state.type, id); });
@@ -446,7 +446,7 @@
   }
 
   function definition(label, value) {
-    return [el('dt', { text: label }), el('dd', { text: value === undefined || value === null || value === '' ? '없음' : String(value) })];
+    return [el('dt', { text: label }), el('dd', { text: value === undefined || value === null || value === '' ? t('collect.none') : String(value) })];
   }
 
   function renderDetail(type, id, data) {
@@ -456,29 +456,29 @@
     var info = typeInfo(type);
     var body = typeof item.body === 'string' ? item.body : '';
 
-    var heading = el('h3', { id: 's2-detail-heading', tabindex: '-1', text: item.title || '(제목 없음)' });
+    var heading = el('h3', { id: 's2-detail-heading', tabindex: '-1', text: item.title || t('s2.untitled') });
     var head = el('div', { className: 's2-detail-head' }, [
-      el('p', { className: 's2-kicker', text: (info ? info.label : MSG.unknownType) + ' 기록' }),
+      el('p', { className: 's2-kicker', text: (info ? info.label : MSG.unknownType) + ' ' + t('fde.records') }),
       heading,
       el('p', { className: 's2-meta-row' }, [
         item.synthetic ? el('span', { className: 's2-badge', text: MSG.synthetic }) : null,
-        item.status ? el('span', { className: 's2-meta', text: '상태 ' + item.status }) : null
+        item.status ? el('span', { className: 's2-meta', text: t('rights.status') + ' ' + item.status }) : null
       ].filter(Boolean))
     ]);
 
     var original = el('section', { className: 's2-section', 'aria-labelledby': 's2-original-title' }, [
-      el('h4', { id: 's2-original-title', text: '원문' }),
+      el('h4', { id: 's2-original-title', text: t('collect.original_text') }),
       body
         ? el('div', { className: 's2-body', tabindex: '0', text: body })
         : el('p', { className: 's2-muted', text: MSG.noBody })
     ]);
 
     var versions = el('section', { className: 's2-section', 'aria-labelledby': 's2-version-title' }, [
-      el('h4', { id: 's2-version-title', text: '버전과 해시' }),
+      el('h4', { id: 's2-version-title', text: t('s2.version_and_hash') }),
       el('dl', { className: 's2-dl' }, [].concat(
-        definition('버전', item.version),
-        definition('원문 해시', item.material_hash),
-        definition('입력 해시', item.input_hash)
+        definition(t('collect.version'), item.version),
+        definition(t('s2.original_text_hash'), item.material_hash),
+        definition(t('s2.input_hash'), item.input_hash)
       ))
     ]);
 
@@ -487,8 +487,8 @@
           var linkType = link.type;
           var linkId = String(link.id === undefined || link.id === null ? '' : link.id);
           var button = el('button', { type: 'button', className: 's2-link-button' }, [
-            el('span', { className: 's2-card-title', text: link.title || '(제목 없음)' }),
-            el('span', { className: 's2-meta', text: typeLabel(linkType) + ' · ' + (link.relation || '관계 미표시') })
+            el('span', { className: 's2-card-title', text: link.title || t('s2.untitled') }),
+            el('span', { className: 's2-meta', text: typeLabel(linkType) + ' · ' + (link.relation || t('s2.relations_not_shown')) })
           ]);
           button.addEventListener('click', function () { selectRecord(linkType, linkId); });
           return el('li', null, [button]);
@@ -496,7 +496,7 @@
       : el('p', { className: 's2-muted', text: MSG.noLinks });
 
     var linksSection = el('section', { className: 's2-section', 'aria-labelledby': 's2-links-title' }, [
-      el('h4', { id: 's2-links-title', text: '연결된 기록' }),
+      el('h4', { id: 's2-links-title', text: t('fde.linked_records') }),
       linkList
     ]);
 
@@ -504,7 +504,7 @@
 
     if (missing.length) {
       sections.push(el('section', { className: 's2-section', 'aria-labelledby': 's2-missing-title' }, [
-        el('h4', { id: 's2-missing-title', text: '연결되지 않은 항목' }),
+        el('h4', { id: 's2-missing-title', text: t('s2.unlinked_items') }),
         el('ul', { className: 's2-missing' }, missing.map(function (miss) {
           return el('li', null, [
             el('span', { className: 's2-card-title', text: typeLabel(miss.type) }),

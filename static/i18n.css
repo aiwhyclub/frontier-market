@@ -1,0 +1,9 @@
+/* Language switch (EN | 한국어) in the header. Minimal on purpose; theme colors come from the shared stylesheet. */
+.lang-switch { display: inline-flex; gap: 4px; align-items: center; margin-left: auto; }
+.lang-btn {
+  min-width: 44px; min-height: 44px; padding: 0 12px;
+  border: 1px solid currentColor; border-radius: 6px;
+  background: transparent; color: inherit; font: inherit; cursor: pointer;
+}
+.lang-btn[aria-pressed="true"] { font-weight: 700; text-decoration: underline; }
+.lang-btn:focus-visible { outline: 3px solid currentColor; outline-offset: 2px; }

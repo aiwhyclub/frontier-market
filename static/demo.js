@@ -12,10 +12,10 @@
 
   var KEYS = ['dashboard', 's1', 's2', 's3', 's4', 's5', 's6', 's7'];
   var ENTITY = { s1: 'sources', s3: 'experts', s4: 'catalogs', s5: 'works', s6: 'projects' };
-  var ENTITY_LABEL = { sources: '자료', experts: '전문가', catalogs: '과제 카드', works: '작업', projects: '프로젝트', companies: '가상회사' };
+  var ENTITY_LABEL = { sources: t('collect.materials'), experts: t('app.experts'), catalogs: t('catalog.task_card'), works: t('demo.work'), projects: t('demo.project'), companies: t('app.virtual_company') };
   var ENTITY_STAGE = { sources: 's1', experts: 's3', catalogs: 's4', works: 's5', projects: 's6', companies: 's7' };
-  var STATE_LABEL = { pending_review: '검토 대기', inspected: '검사 완료', held: '보류', released: '해제' };
-  var CHECK_LABEL = { answer_present: '답안 존재', provenance_linked: '출처 연결', rights_ok: '권리 확인', reviewer_ok: '검토자 승인' };
+  var STATE_LABEL = { pending_review: t('demo.awaiting_review'), inspected: t('company.inspected'), held: t('catalog.on_hold'), released: t('company.release') };
+  var CHECK_LABEL = { answer_present: t('demo.answer_present'), provenance_linked: t('demo.provenance_linked'), rights_ok: t('demo.rights_confirmed'), reviewer_ok: t('demo.reviewer_approved') };
 
   var mode = 'local'; // local | operator | visitor | closed
   var visitorCsrf = null;
@@ -88,11 +88,11 @@
     var box = document.createElement('div');
     box.className = 'fm-demo-bar';
     if (mode === 'operator') {
-      box.innerHTML = '<span class="fm-demo-tag">운영자 모드</span>' +
-        '<button type="button" class="btn btn-secondary" id="fm-op-logout">운영자 로그아웃</button>';
+      box.innerHTML = '<span class="fm-demo-tag">' + t('demo.operator_mode') + '</span>' +
+        '<button type="button" class="btn btn-secondary" id="fm-op-logout">' + t('demo.operator_log_out') + '</button>';
     } else {
-      box.innerHTML = '<span class="fm-demo-tag">' + (mode === 'closed' ? '시연 종료' : '읽기 전용 공개 시연') + '</span>' +
-        '<button type="button" class="btn btn-secondary" id="fm-op-login">운영자 로그인</button>';
+      box.innerHTML = '<span class="fm-demo-tag">' + (mode === 'closed' ? t('demo.demo_ended') : t('demo.read_only_public_demo')) + '</span>' +
+        '<button type="button" class="btn btn-secondary" id="fm-op-login">' + t('demo.operator_login') + '</button>';
     }
     bar.appendChild(box);
     var login = box.querySelector('#fm-op-login');
@@ -112,15 +112,15 @@
     wrap.className = 'fm-demo-overlay';
     wrap.innerHTML =
       '<div class="fm-demo-dialog" role="dialog" aria-modal="true" aria-labelledby="fm-login-title">' +
-        '<h2 id="fm-login-title">운영자 로그인</h2>' +
-        '<p class="fm-demo-muted">운영자 토큰을 입력하면 등록·수정·권리 확인·승인 등 전체 기능을 사용할 수 있습니다.</p>' +
+        '<h2 id="fm-login-title">' + t('demo.operator_login') + '</h2>' +
+        '<p class="fm-demo-muted">' + t('demo.enter_the_operator_token_to') + '</p>' +
         '<form id="fm-login-form" novalidate>' +
-          '<label for="fm-login-token">운영자 토큰</label>' +
+          '<label for="fm-login-token">' + t('demo.operator_token') + '</label>' +
           '<input id="fm-login-token" class="fm-demo-input" type="password" autocomplete="off" required>' +
           '<p class="fm-demo-error" id="fm-login-error" role="alert" hidden></p>' +
           '<div class="fm-demo-actions">' +
-            '<button type="submit" class="btn btn-primary">로그인</button>' +
-            '<button type="button" class="btn btn-secondary" id="fm-login-cancel">취소</button>' +
+            '<button type="submit" class="btn btn-primary">' + t('demo.log_in') + '</button>' +
+            '<button type="button" class="btn btn-secondary" id="fm-login-cancel">' + t('demo.cancel') + '</button>' +
           '</div>' +
         '</form>' +
       '</div>';
@@ -135,15 +135,15 @@
     wrap.addEventListener('keydown', function (e) { if (e.key === 'Escape') { close(); } });
     wrap.querySelector('#fm-login-form').addEventListener('submit', function (e) {
       e.preventDefault();
-      if (!input.value) { error.textContent = '토큰을 입력하세요.'; error.hidden = false; input.focus(); return; }
+      if (!input.value) { error.textContent = t('demo.enter_the_token'); error.hidden = false; input.focus(); return; }
       postJSON('/api/auth/login', { token: input.value }).then(function (r) {
         if (r.status === 200) { window.location.reload(); return; }
-        error.textContent = r.status === 401 ? '인증에 실패했습니다. 토큰을 확인하세요.' : '로그인하지 못했습니다. 잠시 후 다시 시도하세요.';
+        error.textContent = r.status === 401 ? t('demo.authentication_failed_check_the_token') : t('demo.could_not_log_in_please');
         error.hidden = false;
         input.value = '';
         input.focus();
       }, function () {
-        error.textContent = '서버에 연결하지 못했습니다.'; error.hidden = false;
+        error.textContent = t('demo.could_not_connect_to_the'); error.hidden = false;
       });
     });
     input.focus();
@@ -151,14 +151,14 @@
 
   /* ---- visitor screens (read-only) ---- */
   function notice() {
-    return '<section class="fm-demo-notice" role="note"><strong>읽기 전용 공개 시연</strong>' +
-      '<p>모든 자료는 합성 가공 자료입니다. 조회와 가상회사 과제 실행·초기화만 할 수 있고, 등록·수정·권리 확인·승인·내보내기는 운영자 전용입니다. ' +
-      '이 시연은 ' + esc(formatEnd()) + '에 종료됩니다.</p></section>';
+    return '<section class="fm-demo-notice" role="note"><strong>' + t('demo.read_only_public_demo') + '</strong>' +
+      '<p>' + t('demo.all_materials_are_synthetic_you') + ' ' +
+      t('demo.this_demo_ends') + ' ' + esc(formatEnd()) + t('demo.text') + '</p></section>';
   }
 
   function closedHtml() {
-    return '<section class="fm-demo-notice fm-demo-closed" role="alert"><strong>공개 시연이 종료되었습니다</strong>' +
-      '<p>' + esc(formatEnd()) + ' 이후에는 공개 화면과 자료를 열 수 없습니다. 관람해 주셔서 감사합니다. 운영자는 위의 로그인으로 계속 사용할 수 있습니다.</p></section>';
+    return '<section class="fm-demo-notice fm-demo-closed" role="alert"><strong>' + t('demo.the_public_demo_has_ended') + '</strong>' +
+      '<p>' + esc(formatEnd()) + ' ' + t('demo.after_that_time_the_public') + '</p></section>';
   }
 
   function errorHtml(message) {
@@ -179,55 +179,55 @@
     var cards = Object.keys(ENTITY_STAGE).map(function (name) {
       return '<li><a class="stage-card" href="#' + ENTITY_STAGE[name] + '"><span class="stage-code">' + esc(ENTITY_STAGE[name].toUpperCase()) + '</span>' +
         '<span class="stage-name">' + esc(ENTITY_LABEL[name]) + '</span>' +
-        '<span class="stage-desc">합성 ' + esc(counts[name] == null ? 0 : counts[name]) + '건 조회</span></a></li>';
+        '<span class="stage-desc">' + t('catalog.synthetic') + ' ' + esc(counts[name] == null ? 0 : counts[name]) + t('demo.records_viewable') + '</span></a></li>';
     }).join('');
     container.innerHTML = notice() +
-      '<section aria-labelledby="demo-stage-heading"><h2 class="section-title" id="demo-stage-heading">둘러보기</h2>' +
+      '<section aria-labelledby="demo-stage-heading"><h2 class="section-title" id="demo-stage-heading">' + t('demo.browse') + '</h2>' +
       '<ul class="stage-grid">' + cards + '</ul></section>';
   }
 
   function listScreen(container, entity) {
-    container.innerHTML = notice() + '<p class="loading">불러오는 중…</p>';
+    container.innerHTML = notice() + '<p class="loading">' + t('demo.loading') + '</p>';
     getJSON('/api/demo/' + entity).then(function (res) {
       if (handleGone(container, res)) { return; }
-      if (res.status !== 200) { container.innerHTML = notice() + errorHtml('목록을 불러오지 못했습니다.'); return; }
+      if (res.status !== 200) { container.innerHTML = notice() + errorHtml(t('catalog.could_not_load_the_list')); return; }
       var items = res.body.items || [];
       if (!items.length) {
-        container.innerHTML = notice() + '<section class="empty-state"><h2>공개된 합성 항목이 없습니다</h2><p>이 단계에는 아직 시연용 합성 자료가 없습니다.</p></section>';
+        container.innerHTML = notice() + '<section class="empty-state"><h2>' + t('demo.no_public_synthetic_items') + '</h2><p>' + t('demo.there_is_no_demo_synthetic') + '</p></section>';
         return;
       }
       container.innerHTML = notice() + '<ul class="fm-demo-list">' + items.map(function (it) {
         return '<li class="fm-demo-card"><div class="fm-demo-card-head"><strong>' + esc(it.title || it.id) + '</strong>' +
           '<span class="fm-demo-tag">' + esc(it.status || '') + '</span></div>' +
-          '<button type="button" class="btn btn-secondary" data-demo-open="' + esc(it.id) + '" aria-expanded="false">상세 보기</button>' +
+          '<button type="button" class="btn btn-secondary" data-demo-open="' + esc(it.id) + '" aria-expanded="false">' + t('demo.view_details') + '</button>' +
           '<div class="fm-demo-detail" hidden></div></li>';
       }).join('') + '</ul>';
       container.addEventListener('click', function (e) {
         var btn = e.target.closest ? e.target.closest('[data-demo-open]') : null;
         if (!btn) { return; }
         var box = btn.parentNode.querySelector('.fm-demo-detail');
-        if (!box.hidden) { box.hidden = true; btn.setAttribute('aria-expanded', 'false'); btn.textContent = '상세 보기'; return; }
-        box.hidden = false; box.textContent = '불러오는 중…';
-        btn.setAttribute('aria-expanded', 'true'); btn.textContent = '접기';
+        if (!box.hidden) { box.hidden = true; btn.setAttribute('aria-expanded', 'false'); btn.textContent = t('demo.view_details'); return; }
+        box.hidden = false; box.textContent = t('demo.loading');
+        btn.setAttribute('aria-expanded', 'true'); btn.textContent = t('demo.collapse');
         getJSON('/api/demo/' + entity + '/' + encodeURIComponent(btn.getAttribute('data-demo-open'))).then(function (r) {
           if (r.status === 410) { handleGone(container, r); return; }
-          if (r.status !== 200) { box.innerHTML = errorHtml('상세를 불러오지 못했습니다.'); return; }
+          if (r.status !== 200) { box.innerHTML = errorHtml(t('demo.could_not_load_the_details')); return; }
           var it = r.body.item || {};
           var body = it.body;
           var text = typeof body === 'string' ? body : (body ? JSON.stringify(body, null, 2) : '');
-          box.innerHTML = '<pre class="fm-demo-body">' + esc(text || '본문이 없습니다.') + '</pre>' +
-            '<p class="fm-demo-muted">버전 ' + esc(it.version == null ? '-' : it.version) + ' · 합성 자료</p>';
+          box.innerHTML = '<pre class="fm-demo-body">' + esc(text || t('demo.no_text')) + '</pre>' +
+            '<p class="fm-demo-muted">' + t('collect.version') + ' ' + esc(it.version == null ? '-' : it.version) + ' ' + t('demo.synthetic_material') + '</p>';
         });
       });
-    }, function () { container.innerHTML = notice() + errorHtml('서버에 연결하지 못했습니다.'); });
+    }, function () { container.innerHTML = notice() + errorHtml(t('demo.could_not_connect_to_the')); });
   }
 
   function dbScreen(container) {
     var counts = (bootstrapData && bootstrapData.counts) || {};
     var rows = Object.keys(ENTITY_STAGE).map(function (name) {
       return '<li class="fm-demo-card"><div class="fm-demo-card-head"><strong>' + esc(ENTITY_LABEL[name]) + '</strong>' +
-        '<span class="fm-demo-tag">합성 ' + esc(counts[name] == null ? 0 : counts[name]) + '건</span></div>' +
-        '<a class="btn btn-secondary" href="#' + ENTITY_STAGE[name] + '">' + esc(ENTITY_LABEL[name]) + ' 보기</a></li>';
+        '<span class="fm-demo-tag">' + t('catalog.synthetic') + ' ' + esc(counts[name] == null ? 0 : counts[name]) + t('collect.items') + '</span></div>' +
+        '<a class="btn btn-secondary" href="#' + ENTITY_STAGE[name] + '">' + esc(t('demo.view_entity', { entity: ENTITY_LABEL[name] })) + '</a></li>';
     }).join('');
     container.innerHTML = notice() + '<ul class="fm-demo-list">' + rows + '</ul>';
   }
@@ -242,38 +242,38 @@
     var dis = hold ? ' disabled' : '';
     var releaseDis = (hold || !run.inspection_complete || run.state === 'released') ? ' disabled' : '';
     var hist = (t.history || []).map(function (h) {
-      return '<li>시도 ' + esc(h.attempt) + ' · ' + esc(h.event) + ' → ' + esc(STATE_LABEL[h.to_state] || h.to_state) +
-        (h.score == null ? '' : ' · 점수 ' + esc(h.score) + '/4') + '</li>';
+      return '<li>' + t('company.attempt') + ' ' + esc(h.attempt) + ' · ' + esc(h.event) + ' → ' + esc(STATE_LABEL[h.to_state] || h.to_state) +
+        (h.score == null ? '' : ' ' + t('company.score') + ' ' + esc(h.score) + '/4') + '</li>';
     }).join('');
     var crit = (t.criteria || []).map(function (c) { return '<li>' + esc(c.label || c.id || c) + '</li>'; }).join('');
     return '<li class="fm-demo-card" data-task="' + esc(t.task_id) + '" data-version="' + esc(run.run_version) + '">' +
       '<div class="fm-demo-card-head"><strong>' + esc(t.title) + '</strong><span class="fm-demo-tag">' + esc(STATE_LABEL[run.state] || run.state) + '</span></div>' +
-      '<p class="fm-demo-muted">시도 ' + esc(run.attempt) + ' · 실행 버전 ' + esc(run.run_version) +
-        (run.score == null ? '' : ' · 검사 점수 ' + esc(run.score) + '/4') + ' · 이 기록은 내 브라우저 세션에만 저장됩니다.</p>' +
+      '<p class="fm-demo-muted">' + t('company.attempt') + ' ' + esc(run.attempt) + ' ' + t('demo.run_version') + ' ' + esc(run.run_version) +
+        (run.score == null ? '' : ' ' + t('demo.inspection_score') + ' ' + esc(run.score) + '/4') + ' ' + t('demo.this_record_is_stored_only') + '</p>' +
       (crit ? '<ul class="fm-demo-crit">' + crit + '</ul>' : '') +
       '<div class="fm-demo-actions">' +
-        '<button type="button" class="btn btn-primary" data-act="request_inspection"' + dis + '>검사 요청</button>' +
-        '<button type="button" class="btn btn-secondary" data-act="hold"' + dis + '>보류</button>' +
-        '<button type="button" class="btn btn-secondary" data-act="release"' + releaseDis + '>해제</button>' +
-        '<button type="button" class="btn btn-secondary" data-act="reset"' + dis + '>초기화</button>' +
+        '<button type="button" class="btn btn-primary" data-act="request_inspection"' + dis + '>' + t('company.request_inspection') + '</button>' +
+        '<button type="button" class="btn btn-secondary" data-act="hold"' + dis + '>' + t('catalog.on_hold') + '</button>' +
+        '<button type="button" class="btn btn-secondary" data-act="release"' + releaseDis + '>' + t('company.release') + '</button>' +
+        '<button type="button" class="btn btn-secondary" data-act="reset"' + dis + '>' + t('demo.reset') + '</button>' +
       '</div>' +
       '<p class="fm-demo-status" role="status" aria-live="polite"></p>' +
-      (hist ? '<details><summary>내 시도 기록</summary><ul>' + hist + '</ul></details>' : '') + '</li>';
+      (hist ? '<details><summary>' + t('demo.my_attempt_history') + '</summary><ul>' + hist + '</ul></details>' : '') + '</li>';
   }
 
   function companyDetail(container, cid) {
-    container.innerHTML = notice() + '<p class="loading">불러오는 중…</p>';
+    container.innerHTML = notice() + '<p class="loading">' + t('demo.loading') + '</p>';
     getJSON('/api/demo/companies/' + encodeURIComponent(cid)).then(function (res) {
       if (handleGone(container, res)) { return; }
-      if (res.status !== 200) { container.innerHTML = notice() + errorHtml('가상회사를 불러오지 못했습니다.'); return; }
+      if (res.status !== 200) { container.innerHTML = notice() + errorHtml(t('demo.could_not_load_the_virtual')); return; }
       var v = res.body.item;
-      var holdHtml = v.hold ? '<p class="fm-demo-error" role="alert">권리 또는 검토 조건이 바뀌어 이 시연은 보류되었습니다. 실행과 초기화를 할 수 없습니다.</p>' : '';
+      var holdHtml = v.hold ? '<p class="fm-demo-error" role="alert">' + t('demo.rights_or_review_conditions_changed') + '</p>' : '';
       container.innerHTML = notice() +
-        '<p><a href="#s7" class="btn btn-secondary" id="demo-back">목록으로</a></p>' +
+        '<p><a href="#s7" class="btn btn-secondary" id="demo-back">' + t('collect.back_to_list') + '</a></p>' +
         '<h2 class="section-title">' + esc(v.title) + '</h2>' +
-        (v.purpose ? '<p class="fm-demo-muted">목적: ' + esc(v.purpose) + '</p>' : '') + holdHtml +
+        (v.purpose ? '<p class="fm-demo-muted">' + t('company.purpose') + ' ' + esc(v.purpose) + '</p>' : '') + holdHtml +
         (v.tasks.length ? '<ul class="fm-demo-list">' + v.tasks.map(function (t) { return taskHtml(t, v.hold); }).join('') + '</ul>'
-          : '<section class="empty-state"><h2>과제가 아직 없습니다</h2><p>이 회사에는 실행할 과제가 없습니다.</p></section>');
+          : '<section class="empty-state"><h2>' + t('demo.no_tasks_yet') + '</h2><p>' + t('demo.this_company_has_no_tasks') + '</p></section>');
       container.querySelector('#demo-back').addEventListener('click', function (e) { e.preventDefault(); companiesScreen(container); });
       container.onclick = function (e) {
         var btn = e.target.closest ? e.target.closest('[data-act]') : null;
@@ -281,14 +281,14 @@
         var card = btn.closest('[data-task]');
         runAction(container, cid, card, btn.getAttribute('data-act'));
       };
-    }, function () { container.innerHTML = notice() + errorHtml('서버에 연결하지 못했습니다.'); });
+    }, function () { container.innerHTML = notice() + errorHtml(t('demo.could_not_connect_to_the')); });
   }
 
   function runAction(container, cid, card, act, retried) {
     var status = card.querySelector('.fm-demo-status');
     var buttons = card.querySelectorAll('[data-act]');
     Array.prototype.forEach.call(buttons, function (b) { b.disabled = true; });
-    status.textContent = '처리 중…';
+    status.textContent = t('demo.working');
     var body = { task_id: card.getAttribute('data-task'), expected_run_version: parseInt(card.getAttribute('data-version'), 10) || 0 };
     var path = '/api/demo/companies/' + encodeURIComponent(cid) + (act === 'reset' ? '/reset' : '/run');
     if (act !== 'reset') { body.action = act; }
@@ -302,15 +302,15 @@
         });
       }
       if (r.status === 200) { companyDetail(container, cid); return; }
-      var msg = (r.body && r.body.error && r.body.error.message) || '처리하지 못했습니다.';
+      var msg = (r.body && r.body.error && r.body.error.message) || t('demo.could_not_process_it');
       if (r.status === 409 && r.body.error && r.body.error.code === 'version_conflict') {
-        msg += ' 화면을 새로 불러옵니다.';
+        msg += ' ' + t('demo.reloading_the_screen');
         window.setTimeout(function () { companyDetail(container, cid); }, 1200);
       }
       status.textContent = msg;
       Array.prototype.forEach.call(buttons, function (b) { b.disabled = false; });
     }, function () {
-      status.textContent = '서버에 연결하지 못했습니다.';
+      status.textContent = t('demo.could_not_connect_to_the');
       Array.prototype.forEach.call(buttons, function (b) { b.disabled = false; });
     });
   }
@@ -319,13 +319,13 @@
     container.onclick = null;
     var list = (bootstrapData && bootstrapData.companies) || [];
     if (!list.length) {
-      container.innerHTML = notice() + '<section class="empty-state"><h2>공개된 가상회사가 없습니다</h2><p>시연용 합성 가상회사가 아직 만들어지지 않았습니다.</p></section>';
+      container.innerHTML = notice() + '<section class="empty-state"><h2>' + t('demo.no_public_virtual_companies') + '</h2><p>' + t('demo.no_synthetic_demo_virtual_company') + '</p></section>';
       return;
     }
     container.innerHTML = notice() + '<ul class="fm-demo-list">' + list.map(function (c) {
-      return '<li class="fm-demo-card"><div class="fm-demo-card-head"><strong>' + esc(c.title) + '</strong><span class="fm-demo-tag">합성</span></div>' +
-        (c.purpose ? '<p class="fm-demo-muted">목적: ' + esc(c.purpose) + '</p>' : '') +
-        '<button type="button" class="btn btn-primary" data-company="' + esc(c.id) + '">과제 보기·실행</button></li>';
+      return '<li class="fm-demo-card"><div class="fm-demo-card-head"><strong>' + esc(c.title) + '</strong><span class="fm-demo-tag">' + t('catalog.synthetic') + '</span></div>' +
+        (c.purpose ? '<p class="fm-demo-muted">' + t('company.purpose') + ' ' + esc(c.purpose) + '</p>' : '') +
+        '<button type="button" class="btn btn-primary" data-company="' + esc(c.id) + '">' + t('demo.view_and_run_tasks') + '</button></li>';
     }).join('') + '</ul>';
     container.onclick = function (e) {
       var btn = e.target.closest ? e.target.closest('[data-company]') : null;

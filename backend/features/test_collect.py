@@ -38,6 +38,7 @@ class CollectTest(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.app = create_app(ROOT, Path(self.tmp.name) / "test.sqlite3")
         self.client = self.app.test_client()
+        self.client.environ_base["HTTP_X_FM_LANG"] = "ko"  # these tests assert the Korean message text
         self.db_path = self.app.config["DB_PATH"]
         self.patches = [
             mock.patch.object(collect, "_resolve", side_effect=lambda host, port: ["93.184.216.34"]),

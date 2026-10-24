@@ -11,13 +11,13 @@
 
   window.FMScreens = window.FMScreens || {};
 
-  var TYPE_LABEL = { materials: '자료', experts: '전문가', works: '작업' };
+  var TYPE_LABEL = { materials: t('collect.materials'), experts: t('app.experts'), works: t('demo.work') };
   var STATUS_LABEL = {
-    confirmed: '확인됨', restricted: '제한 확인', unconfirmed: '미확인',
-    revoked: '철회', expired: '기간 만료', legacy: '이전 형식'
+    confirmed: t('rights.confirmed'), restricted: t('rights.restricted'), unconfirmed: t('catalog.unconfirmed'),
+    revoked: t('rights.revoked'), expired: t('rights.expired'), legacy: t('rights.legacy_format')
   };
-  var PERM_LABEL = { unknown: '미확인', allowed: '허용', denied: '거부' };
-  var PURPOSE_LABEL = { training: '학습', evaluation: '평가' };
+  var PERM_LABEL = { unknown: t('catalog.unconfirmed'), allowed: t('rights.allowed'), denied: t('rights.denied') };
+  var PURPOSE_LABEL = { training: t('rights.training'), evaluation: t('rights.evaluation') };
 
   function el(tag, cls, text) {
     var node = document.createElement(tag);
@@ -27,7 +27,7 @@
   }
 
   function badgeSynthetic(item) {
-    return item && item.synthetic ? el('span', 'fm-badge', '합성') : null;
+    return item && item.synthetic ? el('span', 'fm-badge', t('catalog.synthetic')) : null;
   }
 
   function api(method, url, body) {
@@ -41,7 +41,7 @@
         if (!res.ok) {
           var err = new Error('request failed');
           err.userMessage = (data && data.error && data.error.message) ||
-            '불러오지 못했어요. 다시 시도해 주세요.';
+            t('rights.could_not_load_please_try');
           err.fields = data && data.error && data.error.fields;
           err.status = res.status;
           throw err;
@@ -57,7 +57,7 @@
     box.setAttribute('role', 'alert');
     box.appendChild(el('p', null, message));
     if (retry) {
-      var btn = el('button', 'btn', '다시 시도');
+      var btn = el('button', 'btn', t('catalog.try_again'));
       btn.type = 'button';
       btn.addEventListener('click', retry);
       box.appendChild(btn);
@@ -67,26 +67,26 @@
 
   function loading(container) {
     container.innerHTML = '';
-    container.appendChild(el('p', 'rights-loading', '불러오는 중…'));
+    container.appendChild(el('p', 'rights-loading', t('demo.loading')));
   }
 
   function formFields(fixed) {
     var fields = [];
     if (!fixed) {
-      fields.push({ name: 'subject_type', label: '대상 유형 (materials / experts / works)', type: 'text', required: true });
-      fields.push({ name: 'subject_id', label: '대상 ID', type: 'text', required: true });
+      fields.push({ name: 'subject_type', label: t('rights.subject_type_materials_experts_works'), type: 'text', required: true });
+      fields.push({ name: 'subject_id', label: t('rights.subject_id'), type: 'text', required: true });
     }
-    fields.push({ name: 'subject_version', label: '대상 개정 번호 (정수)', type: 'number', required: true });
-    fields.push({ name: 'holder', label: '권리자', type: 'text', required: true });
-    fields.push({ name: 'purposes', label: '목적 (training, evaluation 중 쉼표로)', type: 'text', required: true });
-    fields.push({ name: 'derivative', label: '파생 (unknown / allowed / denied)', type: 'text', required: true });
-    fields.push({ name: 'distribution', label: '배포 (unknown / allowed / denied)', type: 'text', required: true });
-    fields.push({ name: 'status', label: '상태 (confirmed / restricted / unconfirmed / revoked)', type: 'text', required: true });
-    fields.push({ name: 'reason', label: '사유', type: 'textarea', required: true });
-    fields.push({ name: 'evidence', label: '근거 (확인·제한 상태에 필요)', type: 'textarea', required: false });
-    fields.push({ name: 'restrictions', label: '제한 내용 (제한 확인에 필요)', type: 'textarea', required: false });
-    fields.push({ name: 'valid_until', label: '기간 종료일 (YYYY-MM-DD, 선택)', type: 'text', required: false });
-    fields.push({ name: 'actor', label: '담당자 (지정 운영책임자)', type: 'text', required: true });
+    fields.push({ name: 'subject_version', label: t('rights.subject_revision_number_integer'), type: 'number', required: true });
+    fields.push({ name: 'holder', label: t('rights.rights_holder'), type: 'text', required: true });
+    fields.push({ name: 'purposes', label: t('rights.purposes_training_evaluation_comma_separ'), type: 'text', required: true });
+    fields.push({ name: 'derivative', label: t('rights.derivatives_unknown_allowed_denied'), type: 'text', required: true });
+    fields.push({ name: 'distribution', label: t('rights.distribution_unknown_allowed_denied'), type: 'text', required: true });
+    fields.push({ name: 'status', label: t('rights.status_confirmed_restricted_unconfirmed_'), type: 'text', required: true });
+    fields.push({ name: 'reason', label: t('rights.reason'), type: 'textarea', required: true });
+    fields.push({ name: 'evidence', label: t('rights.evidence_required_for_confirmed_restrict'), type: 'textarea', required: false });
+    fields.push({ name: 'restrictions', label: t('rights.restrictions_required_for_restricted'), type: 'textarea', required: false });
+    fields.push({ name: 'valid_until', label: t('rights.period_end_date_yyyy_mm'), type: 'text', required: false });
+    fields.push({ name: 'actor', label: t('rights.owner_designated_operations_owner'), type: 'text', required: true });
     return fields;
   }
 
@@ -99,20 +99,20 @@
     row.appendChild(head);
     var dl = el('dl', 'rights-facts');
     [
-      ['권리자', g.holder],
-      ['개정 번호', g.subject_version + (g.applies_now ? ' (현재 내용과 일치)' : ' (이전 내용)')],
-      ['목적', (g.purposes || []).map(function (p) { return PURPOSE_LABEL[p] || p; }).join(', ') || '없음'],
-      ['파생', PERM_LABEL[g.derivative] || g.derivative],
-      ['배포', PERM_LABEL[g.distribution] || g.distribution],
-      ['기간 종료', g.valid_until || '없음'],
-      ['제한', g.restrictions || '없음'],
-      ['근거', g.evidence || '없음'],
-      ['사유', g.reason || '없음'],
-      ['확인자·일시', g.confirmed_by ? g.confirmed_by + ' · ' + (g.confirmed_at || '') : '없음'],
-      ['기록 담당·일시', g.recorded_by ? g.recorded_by + ' · ' + (g.recorded_at || '') : '없음']
+      [t('rights.rights_holder'), g.holder],
+      [t('rights.revision_number'), g.subject_version + (g.applies_now ? ' ' + t('rights.matches_current_content') : ' ' + t('rights.earlier_content'))],
+      [t('company.purpose_2'), (g.purposes || []).map(function (p) { return PURPOSE_LABEL[p] || p; }).join(', ') || t('collect.none')],
+      [t('rights.derivatives'), PERM_LABEL[g.derivative] || g.derivative],
+      [t('rights.distribution'), PERM_LABEL[g.distribution] || g.distribution],
+      [t('rights.period_end'), g.valid_until || t('collect.none')],
+      [t('rights.restrictions'), g.restrictions || t('collect.none')],
+      [t('catalog.evidence'), g.evidence || t('collect.none')],
+      [t('rights.reason'), g.reason || t('collect.none')],
+      [t('rights.confirmed_by_at'), g.confirmed_by ? g.confirmed_by + ' · ' + (g.confirmed_at || '') : t('collect.none')],
+      [t('rights.recorded_by_at'), g.recorded_by ? g.recorded_by + ' · ' + (g.recorded_at || '') : t('collect.none')]
     ].forEach(function (pair) {
       dl.appendChild(el('dt', null, pair[0]));
-      dl.appendChild(el('dd', null, pair[1] === undefined || pair[1] === null ? '없음' : pair[1]));
+      dl.appendChild(el('dd', null, pair[1] === undefined || pair[1] === null ? t('collect.none') : pair[1]));
     });
     row.appendChild(dl);
     return row;
@@ -121,9 +121,9 @@
   function renderState(state) {
     var box = el('section', 'rights-state');
     var isHold = state.state !== 'allowed';
-    box.appendChild(el('h3', null, '이용 범위'));
+    box.appendChild(el('h3', null, t('rights.usage_scope')));
     var verdict = el('p', isHold ? 'rights-hold' : 'rights-allowed',
-      isHold ? '보류(HOLD): 생성·추가 내보내기가 막혀 있어요.' : '허용: 현재 내용 기준으로 확인된 범위 안에서 이용할 수 있어요.');
+      isHold ? t('rights.hold_creation_and_further_export') : t('rights.allowed_usable_within_the_confirmed'));
     box.appendChild(verdict);
     if (state.reasons && state.reasons.length) {
       var ul = el('ul', 'rights-reasons');
@@ -131,7 +131,7 @@
       box.appendChild(ul);
     }
     if (state.past_grant_count) {
-      box.appendChild(el('p', 'rights-note', '이전 개정에 대한 권리 기록 ' + state.past_grant_count + '건은 현재 내용에 적용되지 않아요.'));
+      box.appendChild(el('p', 'rights-note', t('rights.rights_records_for_earlier_revisions') + ' ' + state.past_grant_count + t('rights.do_not_apply_to_the')));
     }
     return box;
   }
@@ -152,7 +152,7 @@
         render(results[0], results[1], results[2]);
       }).catch(function (err) {
         if (my !== seq) return;
-        fail(container, err.userMessage || '권리 정보를 불러오지 못했어요.', reload);
+        fail(container, err.userMessage || t('rights.could_not_load_rights_information'), reload);
       });
     }
 
@@ -160,8 +160,8 @@
       container.innerHTML = '';
       var wrap = el('div', 'rights-panel');
       var head = el('div', 'rights-head');
-      head.appendChild(el('h2', null, '이용 범위 · ' + (TYPE_LABEL[stype] || stype)));
-      var add = el('button', 'btn', '권리 확인 기록 추가');
+      head.appendChild(el('h2', null, t('rights.usage_scope_2') + ' ' + (TYPE_LABEL[stype] || stype)));
+      var add = el('button', 'btn', t('rights.add_rights_record'));
       add.type = 'button';
       add.addEventListener('click', function () { openRecord(null); });
       head.appendChild(add);
@@ -169,14 +169,14 @@
       wrap.appendChild(renderState(state));
 
       var list2 = el('section', 'rights-grants');
-      list2.appendChild(el('h3', null, '권리 확인 기록'));
+      list2.appendChild(el('h3', null, t('rights.rights_records')));
       if (!list.items.length) {
-        list2.appendChild(el('p', 'rights-empty', '아직 권리 확인 기록이 없어요. 권리 확인 기록을 추가해 주세요.'));
+        list2.appendChild(el('p', 'rights-empty', t('rights.no_rights_records_yet_please')));
       } else {
         var ul = el('ul', 'rights-list');
         list.items.forEach(function (g) {
           var row = grantRow(g);
-          var edit = el('button', 'btn', '수정');
+          var edit = el('button', 'btn', t('rights.edit'));
           edit.type = 'button';
           edit.addEventListener('click', function () { openRecord(g); });
           row.appendChild(edit);
@@ -187,12 +187,12 @@
       wrap.appendChild(list2);
 
       var histBox = el('section', 'rights-history');
-      histBox.appendChild(el('h3', null, '개정 이력과 판정 사건'));
-      histBox.appendChild(el('p', 'rights-note', '현재 기록: 개정 ' + hist.current.version + ' (H ' + String(hist.current.material_hash).slice(0, 12) + '…)'));
+      histBox.appendChild(el('h3', null, t('rights.revision_history_and_decision_events')));
+      histBox.appendChild(el('p', 'rights-note', t('rights.current_record_revision') + ' ' + hist.current.version + ' (H ' + String(hist.current.material_hash).slice(0, 12) + '…)'));
       var revs = el('ul', 'rights-revs');
       hist.revisions.forEach(function (rv) {
-        var li = el('li', null, (rv.is_current ? '현재 ' : '과거 ') + '개정 ' + rv.version + ' · ' + rv.created_at);
-        var btn = el('button', 'btn', '당시 내용 보기');
+        var li = el('li', null, (rv.is_current ? t('rights.current') + ' ' : t('rights.past') + ' ') + t('rights.revision') + ' ' + rv.version + ' · ' + rv.created_at);
+        var btn = el('button', 'btn', t('rights.view_content_at_that_time'));
         btn.type = 'button';
         btn.addEventListener('click', function () { showSnapshot(rv); });
         li.appendChild(btn);
@@ -200,10 +200,10 @@
       });
       histBox.appendChild(revs);
       var evs = el('ul', 'rights-events');
-      if (!hist.events.length) evs.appendChild(el('li', null, '기록된 권리 사건이 없어요.'));
+      if (!hist.events.length) evs.appendChild(el('li', null, t('rights.no_rights_events_recorded')));
       hist.events.forEach(function (e) {
         evs.appendChild(el('li', null, e.at + ' · ' + e.action + ' · ' + (e.status_from || '-') + ' → ' + (e.status_to || '-') +
-          ' · 사유: ' + e.reason + ' · 담당: ' + e.actor + ' · 개정 ' + (e.subject_version || '-')));
+          ' ' + t('collect.reason_2') + ' ' + e.reason + ' ' + t('collect.owner_3') + ' ' + e.actor + ' ' + t('rights.revision_2') + ' ' + (e.subject_version || '-')));
       });
       histBox.appendChild(evs);
       wrap.appendChild(histBox);
@@ -213,24 +213,24 @@
     function showSnapshot(rv) {
       var s = rv.snapshot || {};
       var rows = [
-        { label: '개정', value: String(rv.version) },
-        { label: '저장 시각', value: rv.created_at },
-        { label: '제목', value: s.title },
-        { label: '상태', value: s.status },
-        { label: '본문', value: s.body },
-        { label: '내용 해시', value: rv.material_hash }
+        { label: t('rights.revision'), value: String(rv.version) },
+        { label: t('rights.saved_at'), value: rv.created_at },
+        { label: t('collect.title'), value: s.title },
+        { label: t('rights.status'), value: s.status },
+        { label: t('collect.body_text'), value: s.body },
+        { label: t('rights.content_hash'), value: rv.material_hash }
       ];
       if (window.FMForms && window.FMForms.openDetail) {
-        window.FMForms.openDetail({ title: '과거 개정 기록', rows: rows });
+        window.FMForms.openDetail({ title: t('rights.past_revision_records'), rows: rows });
       }
     }
 
     function openRecord(existing) {
       if (!window.FMForms || !window.FMForms.openForm) return;
       window.FMForms.openForm({
-        title: existing ? '권리 확인 기록 수정' : '권리 확인 기록 추가',
+        title: existing ? t('rights.edit_rights_record') : t('rights.add_rights_record'),
         fields: formFields(true),
-        submitLabel: existing ? '수정 저장' : '저장',
+        submitLabel: existing ? t('rights.save_changes') : t('experts.save'),
         onSubmit: function (values) {
           var body = toBody(values, { subject_type: stype, subject_id: sid });
           var req = existing
@@ -238,7 +238,7 @@
                   Object.assign(body, { expected_version: existing.version }))
             : api('POST', '/api/rights', body);
           return req.then(function () {
-            if (window.FMForms.showToast) window.FMForms.showToast('권리 확인 기록을 저장했어요.');
+            if (window.FMForms.showToast) window.FMForms.showToast(t('rights.rights_record_saved'));
             reload();
           });
         }
@@ -267,17 +267,17 @@
         container.innerHTML = '';
         var wrap = el('div', 'rights-panel');
         var head = el('div', 'rights-head');
-        head.appendChild(el('h2', null, '이용 범위 기록'));
-        var add = el('button', 'btn', '새 권리 기록');
+        head.appendChild(el('h2', null, t('rights.usage_scope_records')));
+        var add = el('button', 'btn', t('rights.new_rights_record'));
         add.type = 'button';
         add.addEventListener('click', function () {
           if (!window.FMForms) return;
           window.FMForms.openForm({
-            title: '새 권리 확인 기록',
+            title: t('rights.new_rights_confirmation_record'),
             fields: formFields(false),
             onSubmit: function (values) {
               return api('POST', '/api/rights', toBody(values, {})).then(function () {
-                if (window.FMForms.showToast) window.FMForms.showToast('권리 확인 기록을 저장했어요.');
+                if (window.FMForms.showToast) window.FMForms.showToast(t('rights.rights_record_saved'));
                 reload();
               });
             }
@@ -286,7 +286,7 @@
         head.appendChild(add);
         wrap.appendChild(head);
         if (!data.items.length) {
-          wrap.appendChild(el('p', 'rights-empty', '권리 기록이 없어요.'));
+          wrap.appendChild(el('p', 'rights-empty', t('rights.no_rights_records')));
         } else {
           var ul = el('ul', 'rights-list');
           data.items.forEach(function (g) {
@@ -299,14 +299,14 @@
             row.appendChild(link);
             row.appendChild(el('span', 'fm-badge', STATUS_LABEL[g.effective] || g.effective));
             if (g.synthetic) row.appendChild(badgeSynthetic(g));
-            row.appendChild(el('span', 'rights-note', g.applies_now ? '현재 내용에 적용' : '이전 내용 기록'));
+            row.appendChild(el('span', 'rights-note', g.applies_now ? t('rights.applies_to_current_content') : t('rights.earlier_content_record')));
             ul.appendChild(row);
           });
           wrap.appendChild(ul);
         }
         container.appendChild(wrap);
       }).catch(function (err) {
-        fail(container, err.userMessage || '권리 기록을 불러오지 못했어요.', reload);
+        fail(container, err.userMessage || t('rights.could_not_load_rights_records'), reload);
       });
     }
     reload();
