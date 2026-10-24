@@ -155,3 +155,31 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 @media (min-width:520px) and (max-width:1023px){
   .catalog-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+
+/* Public demo layer (static/demo.js) */
+.fm-demo-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-left:auto}
+.fm-demo-tag{display:inline-flex;align-items:center;min-height:28px;padding:2px 10px;border:1px solid var(--divider);border-radius:999px;font-size:13px;font-weight:700;color:var(--muted)}
+.fm-demo-notice{background:var(--surface);border:1px solid var(--divider);border-left:4px solid var(--warn);border-radius:var(--radius);padding:12px 16px;display:flex;flex-direction:column;gap:4px}
+.fm-demo-notice p{color:var(--muted);max-width:70ch}
+.fm-demo-closed{border-left-color:var(--error)}
+.fm-demo-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.fm-demo-card{display:flex;flex-direction:column;gap:8px;background:var(--surface);border:1px solid var(--divider);border-radius:var(--radius);padding:16px;min-width:0}
+.fm-demo-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;overflow-wrap:anywhere}
+.fm-demo-detail{overflow:hidden}
+.fm-demo-body{white-space:pre-wrap;overflow-wrap:anywhere;margin:0;font:inherit;color:var(--ink)}
+.fm-demo-muted{color:var(--muted);font-size:14px}
+.fm-demo-error{color:var(--error);font-weight:700}
+.fm-demo-actions{display:flex;flex-wrap:wrap;gap:8px}
+.fm-demo-status{min-height:1.4em;color:var(--warn);font-size:14px}
+.fm-demo-crit{margin:0;padding-left:20px;font-size:14px;color:var(--muted)}
+.fm-demo-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
+.fm-demo-dialog{background:var(--surface);color:var(--ink);border-radius:var(--radius);padding:20px;width:100%;max-width:420px;display:flex;flex-direction:column;gap:10px}
+.fm-demo-dialog form{display:flex;flex-direction:column;gap:10px}
+.fm-demo-input{min-height:44px;padding:8px 12px;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--field-line);border-radius:8px;width:100%}
+.fm-demo-list .btn,.fm-demo-actions .btn,.fm-demo-bar .btn{min-width:44px}
+.fm-demo-actions .btn:disabled{opacity:.5;cursor:not-allowed}
+@media (max-width:519px){
+  .fm-demo-list{grid-template-columns:1fr}
+  .fm-demo-actions .btn{flex:1 1 40%}
+  .fm-demo-bar{width:100%;margin-left:0}
+}

@@ -210,9 +210,19 @@
   }
 
   // defer 스크립트 실행 중에는 readyState가 'interactive'이므로, 기능 스크립트가 화면을 등록한 뒤(DOMContentLoaded) 시작한다.
+  // 공개 시연 모드 확인(demo.js의 window.FMBoot)이 끝난 뒤 시작한다. 로컬 모드에서는 즉시 끝나 동작이 같다.
+  function start() {
+    var boot = window.FMBoot;
+    if (boot && typeof boot.then === 'function') {
+      boot.then(init, init);
+    } else {
+      init();
+    }
+  }
+
   if (document.readyState === 'complete') {
-    init();
+    start();
   } else {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', start);
   }
 })();
