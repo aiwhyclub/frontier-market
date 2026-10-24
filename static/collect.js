@@ -228,7 +228,7 @@
       onChanged(item.id);
     });
     var metaForm = metadataForm(item, function () { toast('정보를 저장했습니다.'); onChanged(item.id); });
-    var draft = draftPanel(item, function () { onChanged(item.id); });
+    var draft = draftPanel(item, function () { onChanged(item.id); }, data.ai);
     var history = historyPanel(data);
 
     box.appendChild(head);
@@ -236,7 +236,7 @@
     box.appendChild(original);
     box.appendChild(section('정보 수정 (같은 버전 번호에서 저장)', [metaForm]));
     box.appendChild(section('원문·근거 개정 (사유와 담당자 필수)', [revision]));
-    box.appendChild(section('정리 초안 (규칙 기반, AI 미사용)', [draft]));
+    box.appendChild(section('정리 초안 (AI 초안 또는 규칙 초안)', [draft]));
     box.appendChild(history);
   }
 
@@ -289,7 +289,7 @@
     return form;
   }
 
-  function draftPanel(item, onChanged) {
+  function draftPanel(item, onChanged, ai) {
     var status = el('p', { class: 'cl-status', 'aria-live': 'polite' });
     var out = el('div', null);
     var draftBtn = el('button', { type: 'button', class: 'cl-btn', text: '정리 초안 만들기' });
@@ -302,9 +302,17 @@
         });
     });
     out.appendChild(draftBtn);
+    if (!ai || !ai.adopted) {
+      out.appendChild(el('p', { class: 'cl-meta', text: 'AI 초안 기능이 꺼져 있어 규칙 초안만 만듭니다.' }));
+    }
     if (item.draft) {
+      var isAi = item.draft.mode === 'ai';
+      out.appendChild(el('p', { class: 'cl-badge', text: isAi ? 'AI 초안 (' + item.draft.model + ')' : '규칙 초안' }));
+      if (item.draft.ai_failure) {
+        out.appendChild(el('p', { class: 'cl-meta', text: 'AI 초안 실패(' + item.draft.ai_failure.error + ') — 규칙 초안으로 계속합니다.' }));
+      }
       out.appendChild(el('pre', { class: 'cl-draft', text: item.draft.text }));
-      out.appendChild(el('p', { class: 'cl-meta', text: '초안 출처: 규칙 기반 · 원문 식별값 ' + String(item.draft.body_hash).slice(0, 12) + '…' }));
+      out.appendChild(el('p', { class: 'cl-meta', text: '초안 출처: ' + (isAi ? 'AI(채택 전 초안)' : '규칙 기반') + ' · 원문 식별값 ' + String(item.draft.body_hash).slice(0, 12) + '…' }));
       var reviewer = input('reviewer', '');
       var notes = input('correction_notes', '');
       var corrected = input('text', item.draft.text, true);

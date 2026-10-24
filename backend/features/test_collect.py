@@ -258,5 +258,57 @@ class CollectTest(unittest.TestCase):
         self.assertIn("draft", res.get_json()["error"]["fields"])
 
 
+    # F10.1 AI draft (ai.attempt is monkeypatched; no network)
+    GOOD = json.dumps({"summary": "요약입니다.", "key_points": ["핵심 하나", "핵심 둘"]}, ensure_ascii=False)
+
+    def run_info(self, ok=True, error=None):
+        return {"feature": "F10.1", "attempted": True, "provider": "anthropic", "model": "claude-test",
+                "started_at": "2026-01-01T00:00:00Z", "finished_at": "2026-01-01T00:00:01Z",
+                "input_hash": "sha256:abc", "ok": ok, "usage": {"input_tokens": 5, "output_tokens": 7},
+                "error": error, "mode": "ai" if ok else "rule_based"}
+
+    def draft(self, item, text, run):
+        with mock.patch("backend.ai.attempt", return_value=(text, run)):
+            res = self.client.post(f"/api/collect/materials/{item['id']}/draft",
+                                   json={"expected_version": item["version"]})
+        self.assertEqual(res.status_code, 200, res.get_json())
+        return res.get_json()["item"]
+
+    def test_ai_success_stores_model_hash_usage_and_attempt(self):
+        item = self.create_manual()
+        out = self.draft(item, self.GOOD, self.run_info())
+        d = out["draft"]
+        self.assertEqual((d["mode"], d["model"], d["input_hash"]), ("ai", "claude-test", "sha256:abc"))
+        self.assertEqual(d["usage"]["output_tokens"], 7)
+        self.assertEqual(d["key_points"], ["핵심 하나", "핵심 둘"])
+        self.assertEqual(out["body"], item["body"])
+        self.assertEqual(len(out["draft_attempts"]), 1)
+        self.assertTrue(out["draft_attempts"][0]["ok"])
+        self.assertIsNone(out.get("organized"))
+
+    def test_ai_failure_and_unparsable_fall_back_to_rule_and_are_recorded(self):
+        item = self.create_manual()
+        out = self.draft(item, None, self.run_info(ok=False, error="URLError: boom"))
+        self.assertEqual(out["draft"]["mode"], "rule_based")
+        self.assertEqual(out["draft"]["ai_failure"]["error"], "URLError: boom")
+        out = self.draft(out, "not json at all", self.run_info())
+        self.assertEqual(out["draft"]["mode"], "rule_based")
+        self.assertEqual(out["draft"]["ai_failure"]["error"], "unparsable_response")
+        self.assertEqual([a["ok"] for a in out["draft_attempts"]], [False, False])
+
+    def test_ai_draft_adopt_records_origin_and_not_adopted_makes_no_attempt(self):
+        item = self.create_manual()
+        out = self.draft(item, self.GOOD, self.run_info())
+        res = self.client.post(f"/api/collect/materials/{item['id']}/organized", json={
+            "expected_version": out["version"], "action": "adopt", "reviewer": "운영자"})
+        self.assertEqual(res.get_json()["item"]["organized"]["origin"], "ai_draft_adopted")
+        other = self.create_manual(title="다른")
+        out = self.draft(other, None, {"attempted": False, "input_hash": "x"})
+        self.assertEqual(out["draft"]["mode"], "rule_based")
+        self.assertNotIn("draft_attempts", out)
+        detail = self.client.get(f"/api/collect/materials/{other['id']}").get_json()
+        self.assertFalse(detail["ai"]["adopted"])
+
+
 if __name__ == "__main__":
     unittest.main()

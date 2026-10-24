@@ -1,6 +1,8 @@
 import tempfile
 import unittest
+import json
 from pathlib import Path
+from unittest import mock
 
 from backend import db
 from backend.app import create_app
@@ -160,6 +162,51 @@ class ExpertsTest(unittest.TestCase):
     def test_seed_approved_expert_can_upload(self):
         r = self.client.post("/api/experts/exp_seed01/uploads", json={"title": "t", "raw_text": "r"})
         self.assertEqual(r.status_code, 201, r.get_json())
+
+    # F10.3 AI drafts (ai.attempt monkeypatched; no network)
+
+    def _ai(self, eid, text, ok=True, error=None, adopted=True):
+        run = {"attempted": True, "provider": "anthropic", "model": "claude-test", "ok": ok, "error": error,
+               "started_at": "t0", "finished_at": "t1", "input_hash": "sha256:h", "usage": {"output_tokens": 2}}
+        with mock.patch("backend.ai.adopted", return_value=adopted), \
+                mock.patch("backend.ai.attempt", return_value=(text, run)):
+            return self.client.post(f"/api/experts/{eid}/ai-draft", json={"expected_version": self._version(eid)})
+
+    GOOD = json.dumps({"recruiting_post": "모집문", "experience_summary": "경험",
+                       "evaluation_questions": ["질문1", "질문2"]}, ensure_ascii=False)
+
+    def test_ai_draft_is_labeled_editable_and_never_changes_verdict(self):
+        item = self._create()
+        r = self._ai(item["id"], self.GOOD)
+        self.assertEqual(r.status_code, 200, r.get_json())
+        d = r.get_json()
+        self.assertEqual(d["ai_draft"]["label"], "AI 초안 (claude-test)")
+        self.assertFalse(d["ai_draft"]["outreach_sent"])
+        self.assertFalse(d["ai_draft"]["expert_approval"])
+        self.assertIn("실제 모집 연락", d["ai_draft"]["notice"])
+        self.assertEqual(d["item"]["status"], "candidate")
+        r = self.client.patch(f"/api/experts/{item['id']}/ai-draft", json={
+            "expected_version": d["item"]["version"], "recruiting_post": "고친 모집문",
+            "experience_summary": "고친 경험", "evaluation_questions": ["새 질문"]})
+        self.assertEqual(r.status_code, 200, r.get_json())
+        e = r.get_json()
+        self.assertEqual(e["ai_draft"]["status"], "edited")
+        self.assertEqual(e["ai_draft"]["content"]["recruiting_post"], "고친 모집문")
+        self.assertEqual((e["item"]["status"], e["upload_allowed"]), ("candidate", False))
+
+    def test_ai_off_failure_and_bad_json_are_recorded_without_draft(self):
+        item = self._create()
+        r = self._ai(item["id"], None, adopted=False)
+        self.assertEqual(r.status_code, 409)
+        self.assertEqual(r.get_json()["error"]["code"], "ai_not_adopted")
+        d = self._ai(item["id"], None, ok=False, error="URLError: x").get_json()
+        self.assertFalse(d["ai_result"]["ok"])
+        self.assertIsNone(d["ai_draft"])
+        d = self._ai(item["id"], "nope").get_json()
+        self.assertEqual([a["error"] for a in d["ai_attempts"]], ["URLError: x", "unparsable_response"])
+        self.assertEqual(self.client.patch(f"/api/experts/{item['id']}/ai-draft", json={
+            "expected_version": d["item"]["version"], "recruiting_post": "a", "experience_summary": "b",
+            "evaluation_questions": ["c"]}).status_code, 404)
 
 
 if __name__ == "__main__":

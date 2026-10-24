@@ -3,6 +3,9 @@
 - 전문가는 experts 레코드, 업로드된 작업은 works 레코드(status=uploaded_unlinked, catalog 링크 없음).
 - 점수는 사람이 4축(0~3 정수)으로 입력하고 서버가 합계·가중치를 계산한다. 점수만으로 판정이 바뀌지 않는다.
 - 판정(approved/supplement/rejected)은 지정 운영책임자가 명시적으로 기록할 때만 status를 바꾼다.
+- AI 초안(F10.3): 모집문·경험 정리·평가 질문은 채택된 경우에만 요청할 수 있고 fields.ai_draft 에 편집 가능한
+  "초안"으로만 저장한다. 모든 시도는 fields.ai_attempts 에 남기며, 실제 모집 연락·전문가 승인으로 표시하지 않고
+  판정·상태는 바꾸지 않는다.
 - 프로필 수정은 record_revisions에 이전 내용이 남고, 경험·도제 맥락·제공 범위가 바뀌면 재평가 필요 표시를 남긴다.
 """
 
@@ -11,7 +14,7 @@ from contextlib import closing
 
 from flask import Blueprint, current_app, jsonify, request
 
-from backend import db
+from backend import ai, db
 
 bp = Blueprint("experts", __name__, url_prefix="/api/experts")
 
@@ -147,6 +150,9 @@ def _detail_payload(conn, item):
         "reevaluation_required": reeval,
         "next_action": _next_action(item["status"], reeval),
         "revisions": [{"version": r["version"], "created_at": r["created_at"]} for r in revisions],
+        "ai": ai.status("F10.3"),
+        "ai_draft": _ai_draft_view(stored.get("ai_draft")),
+        "ai_attempts": list(stored.get("ai_attempts") or []),
     }
 
 
@@ -349,3 +355,123 @@ def upload_work(expert_id):
         guidance="카탈로그가 아직 없어 미연결(uploaded_unlinked) 상태로 저장했습니다. "
                  "S4 카탈로그를 만든 뒤 그 화면에서 이 작업을 연결하세요.",
     ), 201
+
+
+# ---------------------------------------------------------------- F10.3 AI drafts
+
+AI_DRAFT_KEYS = {"recruiting_post": "모집문 초안", "experience_summary": "경험 정리 초안",
+                 "evaluation_questions": "평가 질문 초안"}
+AI_NOTICE = ("AI가 만든 초안입니다. 실제 모집 연락을 보낸 것이 아니고 전문가 승인도 아닙니다. "
+             "수정한 뒤 사람이 직접 사용하세요.")
+AI_SYSTEM = ("너는 전문가 후보 모집을 돕는 보조자다. 주어진 프로필에 없는 경력은 만들지 않는다. "
+             'JSON 객체 하나만 답한다: {"recruiting_post": 문자열, "experience_summary": 문자열, '
+             '"evaluation_questions": 문자열 배열(최대 8개)}')
+
+
+def _ai_draft_view(draft):
+    if not draft:
+        return None
+    return {**draft, "label": f"AI 초안 ({draft.get('model')})", "notice": AI_NOTICE,
+            "outreach_sent": False, "expert_approval": False}
+
+
+def _parse_ai_draft(text):
+    start, end = (text or "").find("{"), (text or "").rfind("}")
+    if start < 0 or end <= start:
+        return None
+    try:
+        data = json.loads(text[start:end + 1])
+    except ValueError:
+        return None
+    if not isinstance(data, dict):
+        return None
+    post, summary, questions = (data.get("recruiting_post"), data.get("experience_summary"),
+                                data.get("evaluation_questions"))
+    if not (isinstance(post, str) and post.strip() and isinstance(summary, str) and summary.strip()):
+        return None
+    if not (isinstance(questions, list) and questions
+            and all(isinstance(q, str) and q.strip() for q in questions)):
+        return None
+    return {"recruiting_post": post.strip()[:MAX_TEXT], "experience_summary": summary.strip()[:MAX_TEXT],
+            "evaluation_questions": [q.strip()[:300] for q in questions[:8]]}
+
+
+@bp.post("/<expert_id>/ai-draft")
+def request_ai_draft(expert_id):
+    data = _json_object()
+    if data is None:
+        return _error(400, "invalid_json", "JSON 객체를 보내 주세요.")
+    errors = {}
+    version = _check_version(data, errors)
+    if errors:
+        return _error(400, "validation", "입력을 확인해 주세요.", fields=errors)
+    if not ai.adopted("F10.3"):
+        return _error(409, "ai_not_adopted", "AI 초안 기능이 꺼져 있습니다. 모집문과 질문은 직접 작성하세요.")
+    with closing(_conn()) as conn:
+        try:
+            with db.write_transaction(conn):
+                item, err = _expert_or_404(conn, expert_id)
+                if err:
+                    return err
+                stored = _stored_fields(conn, expert_id)
+                profile = {k: stored.get(k) for k in ("field", "experience", "apprenticeship",
+                                                      "participation_notes", "provided_scope")}
+                profile["name"] = item["title"]
+                text, run = ai.attempt("F10.3", AI_SYSTEM, json.dumps(profile, ensure_ascii=False))
+                parsed = _parse_ai_draft(text) if run.get("ok") else None
+                if run.get("attempted") and run.get("ok") and parsed is None:
+                    run = {**run, "ok": False, "error": "unparsable_response"}
+                attempt_run = {k: run.get(k) for k in ("provider", "model", "started_at", "finished_at",
+                                                       "ok", "error", "usage", "input_hash")}
+                new_fields = dict(stored)
+                new_fields["ai_attempts"] = (stored.get("ai_attempts") or [])[-49:] + [attempt_run]
+                if parsed:
+                    new_fields["ai_draft"] = {"status": "draft", "content": parsed, "model": run["model"],
+                                              "started_at": run["started_at"], "finished_at": run["finished_at"],
+                                              "input_hash": run["input_hash"], "usage": run.get("usage"),
+                                              "edited_at": None}
+                db.update_record(conn, "experts", expert_id, expected_version=version,
+                                 changes={"fields": new_fields})
+                payload = _detail_payload(conn, db.get_record(conn, "experts", expert_id))
+        except db.RecordConflict:
+            return _error(409, "version_conflict", "다른 곳에서 먼저 수정되었습니다. 새로고침 후 다시 시도해 주세요.")
+    payload["ai_result"] = {"ok": bool(parsed), "error": None if parsed else attempt_run["error"]}
+    return jsonify(payload)
+
+
+@bp.patch("/<expert_id>/ai-draft")
+def edit_ai_draft(expert_id):
+    """Edit the draft text. Still a draft: nothing is sent and the verdict is untouched."""
+    data = _json_object()
+    if data is None:
+        return _error(400, "invalid_json", "JSON 객체를 보내 주세요.")
+    errors = {}
+    version = _check_version(data, errors)
+    post = _check_text(data, "recruiting_post", errors, required=True, max_len=MAX_TEXT)
+    summary = _check_text(data, "experience_summary", errors, required=True, max_len=MAX_TEXT)
+    questions = data.get("evaluation_questions")
+    if not (isinstance(questions, list) and questions
+            and all(isinstance(q, str) and q.strip() and len(q) <= 300 for q in questions)):
+        errors["evaluation_questions"] = "비어 있지 않은 문자열 목록이어야 합니다(각 300자 이하)."
+    if errors:
+        return _error(400, "validation", "입력을 확인해 주세요.", fields=errors)
+    with closing(_conn()) as conn:
+        try:
+            with db.write_transaction(conn):
+                item, err = _expert_or_404(conn, expert_id)
+                if err:
+                    return err
+                stored = _stored_fields(conn, expert_id)
+                draft = stored.get("ai_draft")
+                if not draft:
+                    return _error(404, "no_ai_draft", "수정할 AI 초안이 없습니다.")
+                new_fields = dict(stored)
+                new_fields["ai_draft"] = {**draft, "status": "edited", "edited_at": db.now_iso(),
+                                          "content": {"recruiting_post": post, "experience_summary": summary,
+                                                      "evaluation_questions": [q.strip() for q in questions[:8]]}}
+                db.update_record(conn, "experts", expert_id, expected_version=version,
+                                 changes={"fields": new_fields})
+                payload = _detail_payload(conn, db.get_record(conn, "experts", expert_id))
+        except db.RecordConflict:
+            return _error(409, "version_conflict", "다른 곳에서 먼저 수정되었습니다. 새로고침 후 다시 시도해 주세요.")
+    return jsonify(payload)

@@ -190,6 +190,46 @@
     });
   }
 
+  // F10.3: recruiting post / experience summary / evaluation questions as an editable draft only.
+  function aiSection(d, item, reload) {
+    var sec = el('section', { className: 's2-section' }, [el('h3', { text: 'AI 초안 (모집문·경험 정리·평가 질문)' })]);
+    var draft = d.ai_draft;
+    if (!d.ai || !d.ai.adopted) {
+      sec.appendChild(el('p', { className: 'empty-state',
+        text: 'AI 초안 기능이 꺼져 있어요. 모집문과 평가 질문은 직접 작성하세요.' }));
+    } else {
+      var reqBtn = el('button', { type: 'button', className: 'fm-button', text: 'AI 초안 요청' });
+      reqBtn.addEventListener('click', function () {
+        api('POST', '/api/experts/' + encodeURIComponent(item.id) + '/ai-draft', { expected_version: item.version })
+          .then(function (res) {
+            if (res.ai_result && !res.ai_result.ok) window.alert('AI 초안을 받지 못했어요(' + res.ai_result.error + '). 판정은 그대로예요.');
+            reload();
+          }, function (err) { window.alert((err && err.userMessage) || '요청하지 못했어요.'); });
+      });
+      sec.appendChild(reqBtn);
+    }
+    if (!draft) return sec;
+    var c = draft.content;
+    sec.appendChild(el('p', { className: 's2-badge', text: draft.label + ' · ' + (draft.status === 'edited' ? '수정됨' : '초안') }));
+    sec.appendChild(el('p', { className: 'fm-error', role: 'note', text: draft.notice }));
+    var post = el('textarea', { className: 'fm-input', rows: '4', 'aria-label': '모집문 초안' });
+    var summary = el('textarea', { className: 'fm-input', rows: '3', 'aria-label': '경험 정리 초안' });
+    var questions = el('textarea', { className: 'fm-input', rows: '5', 'aria-label': '평가 질문 초안 (한 줄에 하나)' });
+    post.value = c.recruiting_post; summary.value = c.experience_summary; questions.value = c.evaluation_questions.join('\n');
+    var save = el('button', { type: 'button', className: 'fm-button', text: '초안 수정 저장 (발송 아님)' });
+    save.addEventListener('click', function () {
+      api('PATCH', '/api/experts/' + encodeURIComponent(item.id) + '/ai-draft', {
+        expected_version: item.version, recruiting_post: post.value, experience_summary: summary.value,
+        evaluation_questions: questions.value.split('\n').map(function (q) { return q.trim(); }).filter(Boolean)
+      }).then(reload, function (err) { window.alert((err && err.userMessage) || '저장하지 못했어요.'); });
+    });
+    [['모집문 초안', post], ['경험 정리 초안', summary], ['평가 질문 초안 (한 줄에 하나)', questions]].forEach(function (p) {
+      sec.appendChild(el('label', { className: 'fm-label' }, [el('span', { text: p[0] }), p[1]]));
+    });
+    sec.appendChild(save);
+    return sec;
+  }
+
   function renderDetail(container, id, showList) {
     container.textContent = '';
     var back = el('button', { type: 'button', className: 'fm-button', text: '목록으로' });
@@ -244,6 +284,8 @@
         container.appendChild(el('p', { className: 'empty-state',
           text: '승인된 전문가만 원시 작업을 업로드할 수 있습니다. 현재 판정을 확인하고 평가를 기록하세요.' }));
       }
+
+      container.appendChild(aiSection(d, item, reload));
 
       var past = el('ol', { className: 's2-list' });
       (d.past_evaluations || []).forEach(function (ev) {

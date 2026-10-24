@@ -2,6 +2,8 @@ import tempfile
 import unittest
 from contextlib import closing
 from pathlib import Path
+from unittest import mock
+import json
 
 from backend import db
 from backend.app import create_app
@@ -143,6 +145,81 @@ class RefineTest(unittest.TestCase):
         ids = {i["id"]: i for i in r.get_json()["items"]}
         self.assertIn("wrk_seed01", ids)
         self.assertIn(ids["wrk_seed01"]["state"], {"no_correction", "pending", "approved", "rejected", "review_required"})
+
+    # F10.2 AI refine draft (ai.attempt monkeypatched; no network)
+
+    def ai_run(self, ok=True, error=None):
+        return {"attempted": True, "provider": "anthropic", "model": "claude-test", "ok": ok, "error": error,
+                "started_at": "t0", "finished_at": "t1", "input_hash": "sha256:h", "usage": {"output_tokens": 3}}
+
+    def ai_request(self, wid, text, run):
+        with mock.patch("backend.ai.adopted", return_value=True), \
+                mock.patch("backend.ai.attempt", return_value=(text, run)):
+            return self.client.post(f"/api/refine/works/{wid}/ai-draft",
+                                    json={"expected_version": self.version(wid)})
+
+    def approved_work(self):
+        wid = self.make_work()
+        self.correct(wid)
+        self.set_operator()
+        d = self.detail(wid)
+        r = self.client.post(f"/api/refine/works/{wid}/validate", json={
+            "decision": "approved", "notes": "ok", "reviewer": "운영자 A",
+            "expected_version": d["item"]["version"], "input_hash": d["input_hash"], "evidence_refs": []})
+        self.assertEqual(r.status_code, 200, r.get_json())
+        return wid
+
+    def test_ai_draft_never_changes_approval_or_original_and_needs_adopt_then_new_review(self):
+        wid = self.approved_work()
+        before = self.detail(wid)
+        text = json.dumps({"observation": "AI가 정리한 관찰", "context": "맥락"}, ensure_ascii=False)
+        r = self.ai_request(wid, text, self.ai_run())
+        self.assertEqual(r.status_code, 200, r.get_json())
+        d = r.get_json()
+        self.assertEqual(d["views"]["ai_draft"]["status"], "proposed")
+        self.assertEqual(d["views"]["ai_draft"]["model"], "claude-test")
+        self.assertEqual(d["views"]["original"], before["views"]["original"])
+        self.assertEqual(d["views"]["corrected"], before["views"]["corrected"])
+        self.assertEqual((d["review"]["state"], d["input_hash"]), ("approved", before["input_hash"]))
+        # using it before adoption is refused
+        r = self.client.post(f"/api/refine/works/{wid}/correction", json={
+            "expected_version": d["item"]["version"], "refined": {"observation": "x"}, "correction_reason": "r",
+            "reviewer": "운영자 A", "from_ai_draft": True})
+        self.assertEqual(r.get_json()["error"]["code"], "ai_draft_not_adopted")
+        r = self.client.post(f"/api/refine/works/{wid}/ai-draft/adopt", json={
+            "expected_version": d["item"]["version"], "reviewer": "운영자 A"})
+        d = r.get_json()
+        self.assertEqual(d["views"]["ai_draft"]["status"], "adopted")
+        self.assertEqual(d["review"]["state"], "approved")
+        r = self.client.post(f"/api/refine/works/{wid}/correction", json={
+            "expected_version": d["item"]["version"], "refined": {"observation": "AI가 정리한 관찰"},
+            "correction_reason": "AI 초안 교정", "reviewer": "운영자 A", "from_ai_draft": True})
+        self.assertEqual(r.status_code, 200, r.get_json())
+        self.assertEqual(r.get_json()["review"]["state"], "review_required")
+
+    def test_ai_failure_reject_and_off_leave_state_untouched(self):
+        wid = self.approved_work()
+        before = self.detail(wid)
+        r = self.ai_request(wid, None, self.ai_run(ok=False, error="URLError: x"))
+        d = r.get_json()
+        self.assertFalse(d["ai_result"]["ok"])
+        self.assertIsNone(d["views"]["ai_draft"]["content"])
+        self.assertEqual(len(d["ai_attempts"]), 1)
+        r = self.ai_request(wid, "garbage", self.ai_run())
+        self.assertEqual(r.get_json()["ai_attempts"][-1]["error"], "unparsable_response")
+        r = self.ai_request(wid, json.dumps({"observation": "AI"}), self.ai_run())
+        d = r.get_json()
+        r = self.client.post(f"/api/refine/works/{wid}/ai-draft/reject", json={
+            "expected_version": d["item"]["version"], "reviewer": "운영자 A"})
+        d = r.get_json()
+        self.assertEqual(d["views"]["ai_draft"]["status"], "rejected")
+        self.assertEqual(len(d["ai_attempts"]), 3)
+        self.assertEqual((d["review"]["state"], d["input_hash"]), ("approved", before["input_hash"]))
+        self.assertEqual(d["views"]["corrected"], before["views"]["corrected"])
+        r = self.client.post(f"/api/refine/works/{wid}/ai-draft", json={"expected_version": d["item"]["version"]})
+        self.assertEqual(r.status_code, 409)
+        self.assertEqual(r.get_json()["error"]["code"], "ai_not_adopted")
+        self.assertFalse(d["ai"]["adopted"])
 
 
 if __name__ == "__main__":

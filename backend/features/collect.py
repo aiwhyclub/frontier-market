@@ -5,7 +5,8 @@
 - 본문 직접 등록: URL 없이 같은 materials 기록으로 저장한다.
 - 원문·근거 개정: 사유·담당자를 함께 저장하면 새 버전과 collect_events 사건을 남기고,
   이 원문을 참조하는 작업(works --from--> materials)을 재검토 필요로 표시한다.
-- 정리 초안: 규칙 기반만 사용(모델 호출 없음). 채택/교정 결과는 fields.organized에 따로 저장하고
+- 정리 초안: 기본은 규칙 기반. FM_AI_ENABLED 등으로 채택된 경우에만 AI 초안(F10.1)을 시도하고,
+  모든 시도는 fields.draft_attempts 에 남기며 실패하면 규칙 초안으로 계속한다. 채택/교정 결과는 fields.organized에 따로 저장하고
   원문(body)은 덮어쓰지 않는다.
 
 Errors: {"error": {"code", "message"[, "fields"|"reason"]}}.
@@ -26,7 +27,7 @@ from urllib.parse import urljoin, urlsplit
 
 from flask import Blueprint, current_app, jsonify, request
 
-from backend import db
+from backend import ai, db
 
 bp = Blueprint("collect", __name__, url_prefix="/api/collect")
 
@@ -478,7 +479,7 @@ def get_material(record_id):
     organized = item.get("organized")
     organized_stale = bool(organized) and organized.get("based_on_body_hash") != _sha(item.get("body"))
     return jsonify(item=item, events=events, revisions=revisions, dependent_works=works,
-                   organized_stale=organized_stale)
+                   organized_stale=organized_stale, ai=ai.status("F10.1"))
 
 
 @bp.get("/materials/<record_id>/revisions/<int:version>")
@@ -570,13 +571,68 @@ def make_draft(record_id):
             if not body.strip():
                 raise _Invalid({"body": "원문이 없어 초안을 만들 수 없습니다."})
             fields = json.loads(row["fields_json"])
-            fields["draft"] = {**build_rule_draft(body), "mode": "rule_based", "model": None,
-                               "body_hash": _sha(body), "created_at": db.now_iso()}
+            draft, attempt_run = _make_draft(body)
+            fields["draft"] = draft
+            if attempt_run:
+                fields["draft_attempts"] = (fields.get("draft_attempts") or []) + [attempt_run]
             item = db.update_record(conn, "materials", record_id, expected_version=expected,
                                     changes={"fields": fields})
             _record_event(conn, record_id, "draft", from_version=expected, to_version=item["version"],
-                          detail={"mode": "rule_based"})
+                          detail={"mode": draft["mode"], "ai_attempted": bool(attempt_run),
+                                  "ai_ok": bool(attempt_run and attempt_run.get("ok"))})
     return jsonify(item=item), 200
+
+
+AI_SYSTEM = ("너는 수집한 자료를 구조화하는 보조자다. 자료에 있는 내용만 쓰고 추측하지 않는다. "
+             'JSON 객체 하나만 답한다: {"summary": 문자열(300자 이하), "key_points": 문자열 배열(최대 5개)}')
+
+
+def parse_ai_draft(text):
+    """Return the rule-draft shape from model output, or None when it is not valid JSON of that shape."""
+    if not isinstance(text, str):
+        return None
+    start, end = text.find("{"), text.rfind("}")
+    if start < 0 or end <= start:
+        return None
+    try:
+        data = json.loads(text[start:end + 1])
+    except ValueError:
+        return None
+    if not isinstance(data, dict):
+        return None
+    summary, points = data.get("summary"), data.get("key_points")
+    if not isinstance(summary, str) or not summary.strip():
+        return None
+    if not isinstance(points, list) or not points or not all(isinstance(p, str) and p.strip() for p in points):
+        return None
+    summary = summary.strip()[:300]
+    points = [p.strip()[:200] for p in points[:5]]
+    return {"text": "\n".join(["요약: " + summary] + ["- " + p for p in points]),
+            "summary": summary, "key_points": points}
+
+
+def _make_draft(body):
+    """Try the AI draft (F10.1) when adopted; otherwise or on any failure keep the rule draft.
+
+    Returns (draft, attempt) where attempt is None when no real call was made.
+    """
+    base = {"body_hash": _sha(body), "created_at": db.now_iso()}
+    text, run = ai.attempt("F10.1", AI_SYSTEM, body[:MAX_BODY_CHARS])
+    if not run.get("attempted"):
+        return {**build_rule_draft(body), "mode": "rule_based", "model": None, **base}, None
+    parsed = parse_ai_draft(text) if run.get("ok") else None
+    if run.get("ok") and parsed is None:
+        run = {**run, "ok": False, "error": "unparsable_response", "mode": "rule_based"}
+    attempt_run = {k: run.get(k) for k in ("provider", "model", "started_at", "finished_at", "ok",
+                                           "error", "usage", "input_hash")}
+    attempt_run["adopted"] = False
+    if parsed:
+        return ({**parsed, "mode": "ai", "model": run["model"], "provider": run["provider"],
+                 "started_at": run["started_at"], "finished_at": run["finished_at"],
+                 "input_hash": run["input_hash"], "usage": run.get("usage"), **base}, attempt_run)
+    draft = {**build_rule_draft(body), "mode": "rule_based", "model": None, **base,
+             "ai_failure": {"error": attempt_run["error"], "at": attempt_run["finished_at"]}}
+    return draft, attempt_run
 
 
 def build_rule_draft(body):
@@ -628,7 +684,10 @@ def organize(record_id):
             previous = fields.get("organized") or {}
             organized = {
                 "text": draft["text"] if action == "adopt" else corrected.strip(),
-                "origin": "rule_draft_adopted" if action == "adopt" else "rule_draft_corrected",
+                "origin": ("ai" if draft.get("mode") == "ai" else "rule") + (
+                    "_draft_adopted" if action == "adopt" else "_draft_corrected"),
+                "draft_mode": draft.get("mode", "rule_based"),
+                "draft_model": draft.get("model"),
                 "based_on_body_hash": draft["body_hash"],
                 "draft_created_at": draft.get("created_at"),
                 "correction_notes": notes,

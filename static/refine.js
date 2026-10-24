@@ -18,6 +18,7 @@
   var VIEW_TABS = [
     { key: 'original', label: '원문' },
     { key: 'draft', label: '초안' },
+    { key: 'ai_draft', label: 'AI 초안' },
     { key: 'corrected', label: '교정본' },
     { key: 'evidence', label: '근거' }
   ];
@@ -103,7 +104,7 @@
       tabs.appendChild(btn);
     });
     var panel = el('div', { className: 'refine-panel', role: 'tabpanel' });
-    panel.appendChild(renderView(detail, memo.tab));
+    panel.appendChild(memo.tab === 'ai_draft' ? renderAiPanel(detail, host) : renderView(detail, memo.tab));
     return [tabs, panel];
   }
 
@@ -115,6 +116,90 @@
       dl.appendChild(el('dd', { text: content[k] }));
     });
     return dl;
+  }
+
+  function aiLabel(v) {
+    return v && v.model ? 'AI 초안 (' + v.model + ')' : '규칙 초안';
+  }
+
+  function inlineField(label, tag) {
+    var input = el(tag, { className: 'fm-input', rows: '3' });
+    return { input: input, row: el('label', { className: 'fm-label' }, [el('span', { text: label }), input]) };
+  }
+
+  // F10.2: the AI draft is shown apart from the original, rule draft and correction.
+  // Requesting, receiving, failing or rejecting it never changes the current approval.
+  function renderAiPanel(detail, host) {
+    var v = detail.views.ai_draft;
+    var id = detail.item.id;
+    var wrap = el('div', {});
+    wrap.appendChild(el('p', { className: 'refine-method',
+      text: '표시: ' + (v.content ? aiLabel(v) : '아직 AI 초안 없음') + ' · 규칙 초안과 따로 보관돼요.' }));
+    if (!detail.ai || !detail.ai.adopted) {
+      wrap.appendChild(emptyBox('AI 정제 초안 기능이 꺼져 있어요. 규칙 초안과 직접 교정으로 계속할 수 있어요.'));
+    } else {
+      var reqBtn = el('button', { type: 'button', className: 'fm-button', text: 'AI 초안 요청' });
+      reqBtn.disabled = !detail.prereq.ready;
+      reqBtn.addEventListener('click', function () {
+        api('POST', '/api/refine/works/' + id + '/ai-draft', { expected_version: detail.item.version })
+          .then(function (d) {
+            memo.tab = 'ai_draft'; render(host, d);
+            if (d.ai_result && !d.ai_result.ok) window.alert('AI 초안을 받지 못했어요(' + d.ai_result.error + '). 현재 승인과 원문은 그대로예요.');
+          })
+          .catch(function (e) { window.alert(e.userMessage); });
+      });
+      wrap.appendChild(reqBtn);
+    }
+    if (!v.content) return wrap;
+    wrap.appendChild(el('p', { className: 'refine-meta',
+      text: '상태: ' + ({ proposed: '채택 대기 (참고용)', adopted: '채택함', rejected: '기각함' }[v.status] || v.status) +
+        ' · 시각: ' + (v.finished_at || '') }));
+    wrap.appendChild(sectionList(v.content));
+    var who = inlineField('담당자', 'input');
+    function decide(kind, label) {
+      var b = el('button', { type: 'button', className: 'fm-button', text: label });
+      b.addEventListener('click', function () {
+        if (!who.input.value.trim()) { window.alert('담당자를 입력해 주세요.'); return; }
+        api('POST', '/api/refine/works/' + id + '/ai-draft/' + kind,
+          { expected_version: detail.item.version, reviewer: who.input.value.trim() })
+          .then(function (d) { memo.tab = 'ai_draft'; render(host, d); })
+          .catch(function (e) { window.alert(e.userMessage); });
+      });
+      return b;
+    }
+    if (v.status === 'proposed') {
+      wrap.appendChild(who.row);
+      wrap.appendChild(decide('adopt', '채택 (교정 시작)'));
+      wrap.appendChild(decide('reject', '기각'));
+    }
+    if (v.status === 'adopted') {
+      wrap.appendChild(el('p', { className: 'refine-meta',
+        text: '채택한 초안을 고쳐 저장하면 새 버전이 되고, 현재 승인은 재검토가 필요해져요.' }));
+      var edits = {};
+      SECTION_KEYS.forEach(function (k) {
+        var f = inlineField(SECTION_LABELS[k], 'textarea');
+        f.input.value = v.content[k] || '';
+        edits[k] = f.input;
+        wrap.appendChild(f.row);
+      });
+      var reason = inlineField('교정 사유', 'textarea');
+      var reviewer = inlineField('담당자', 'input');
+      wrap.appendChild(reason.row);
+      wrap.appendChild(reviewer.row);
+      var save = el('button', { type: 'button', className: 'fm-button', text: 'AI 초안 교정 저장 (새 버전)' });
+      save.disabled = !detail.prereq.ready;
+      save.addEventListener('click', function () {
+        var refined = {};
+        SECTION_KEYS.forEach(function (k) { if (edits[k].value.trim()) refined[k] = edits[k].value.trim(); });
+        api('POST', '/api/refine/works/' + id + '/correction', {
+          expected_version: detail.item.version, refined: refined, from_ai_draft: true,
+          correction_reason: reason.input.value, reviewer: reviewer.input.value
+        }).then(function (d) { memo.tab = 'corrected'; render(host, d); window.FMForms.showToast('교정본을 새 버전으로 저장했어요. 재검토가 필요해요.'); })
+          .catch(function (e) { window.alert(e.userMessage); });
+      });
+      wrap.appendChild(save);
+    }
+    return wrap;
   }
 
   function renderView(detail, key) {
