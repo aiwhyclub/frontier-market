@@ -152,13 +152,12 @@
   /* ---- visitor screens (read-only) ---- */
   function notice() {
     return '<section class="fm-demo-notice" role="note"><strong>' + t('demo.read_only_public_demo') + '</strong>' +
-      '<p>' + t('demo.all_materials_are_synthetic_you') + ' ' +
-      t('demo.this_demo_ends') + ' ' + esc(formatEnd()) + t('demo.text') + '</p></section>';
+      '<p>' + t('demo.all_materials_are_synthetic_you') + '</p></section>';
   }
 
   function closedHtml() {
     return '<section class="fm-demo-notice fm-demo-closed" role="alert"><strong>' + t('demo.the_public_demo_has_ended') + '</strong>' +
-      '<p>' + esc(formatEnd()) + ' ' + t('demo.after_that_time_the_public') + '</p></section>';
+      '<p>' + t('demo.after_that_time_the_public') + '</p></section>';
   }
 
   function errorHtml(message) {
