@@ -78,3 +78,10 @@
   .s2-dl{grid-template-columns:1fr}
   .s2-dl dt{margin-top:6px}
 }
+
+/* 검색·필터 (STORY 11.1): 입력은 44px 이상, 검색 행동은 줄바꿈되어 좁은 화면에서도 가로 넘침이 없다. */
+.s2-search{display:flex;flex-direction:column;gap:12px;min-width:0;max-width:100%}
+.s2-search .s2-field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.s2-input{min-height:44px;width:100%;min-width:0;max-width:100%;padding:8px 12px;font:inherit;font-size:16px;color:var(--ink);background:var(--surface);border:1px solid var(--field-line);border-radius:var(--radius);box-sizing:border-box}
+.s2-search-actions{display:flex;flex-wrap:wrap;gap:8px}
+.s2-search-actions .btn{min-height:44px;min-width:0}

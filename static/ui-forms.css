@@ -293,3 +293,12 @@ textarea.fm-input {
     transition: none;
   }
 }
+
+/* STORY 11.3: 키보드 조작 대상 크기와 가상 키보드 시 스크롤 여백 */
+.fm-input,.fm-btn{scroll-margin:120px 0}
+.fm-btn,.fm-input{min-height:var(--fm-touch)}
+@media (max-width:520px){
+  .fm-buttons{flex-wrap:nowrap}
+  .fm-buttons .fm-btn{flex:1 1 0;min-width:0}
+  .fm-fields{padding-bottom:var(--fm-gap)}
+}

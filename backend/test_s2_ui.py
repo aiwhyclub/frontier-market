@@ -148,6 +148,34 @@ class S2RecordsAssetTest(unittest.TestCase):
         self.assertIn("token !== state.listToken", self.js_code)
         self.assertIn("token !== state.detailToken", self.js_code)
 
+    def test_search_form_has_text_field_status_inputs_and_submit_only_reload(self):
+        self.assertIn("el('form', { className: 's2-search', role: 'search'", self.js_code)
+        self.assertIn("type: 'search'", self.js_code)
+        self.assertIn("el('label', { 'for': 's2-q'", self.js_code)
+        self.assertIn("el('label', { 'for': 's2-field'", self.js_code)
+        self.assertIn("el('label', { 'for': 's2-status'", self.js_code)
+        self.assertIn("event.preventDefault();", self.js_code)
+        self.assertIn("maxlength: String(QUERY_MAX)", self.js_code)
+
+    def test_search_params_are_sent_to_the_contract_endpoint_only_when_filled(self):
+        self.assertIn("params.set(key, state.query[key])", self.js_code)
+        self.assertIn("encodeURIComponent(type) + searchQueryString()", self.js_code)
+        self.assertIn("['q', 'field', 'status']", self.js_code)
+
+    def test_empty_search_state_is_distinct_from_first_registration_empty_state(self):
+        self.assertIn("'조건에 맞는 ' + info.label + ' 기록이 없어요'", self.js_code)
+        self.assertIn("isSearching() ? searchEmptyBlock(info) : emptyBlock(info)", self.js_code)
+        self.assertIn("'검색 지우기'", self.js_code)
+
+    def test_search_query_survives_detail_round_trip_via_state(self):
+        self.assertIn("query: { q: '', field: '', status: '' }", self.js_code)
+        self.assertIn("syncSearchInputs()", self.js_code)
+
+    def test_search_css_keeps_targets_and_no_horizontal_overflow(self):
+        self.assertIn(".s2-input{min-height:44px", self.css)
+        self.assertIn("max-width:100%", self.css)
+        self.assertNotIn("100vw", self.css)
+
     def test_keyboard_controls_are_native_buttons(self):
         self.assertIn("el('button', {\n        type: 'button', className: 's2-card-button'", self.js_code)
         self.assertIn("className: 's2-link-button'", self.js_code)

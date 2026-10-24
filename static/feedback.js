@@ -95,40 +95,55 @@
   /* ---------- opinion form (F8.1, F8.2) ---------- */
 
   function chooser() {
+    // 호출한 버튼을 기억해 닫을 때 그 위치로 포커스를 돌린다(STORY 11.3).
+    var opener = document.activeElement;
     var dialog = document.createElement('dialog');
-    dialog.className = 'fb-dialog';
+    dialog.className = 'fm-dialog fb-dialog';
     dialog.setAttribute('aria-labelledby', 'fb-chooser-title');
     var buttons = Object.keys(KIND_LABELS).map(function (kind) {
       return el('button', {
         type: 'button', className: 'fm-btn fb-kind-btn', text: KIND_LABELS[kind]
       });
     });
-    var wrap = el('div', { className: 'fb-chooser' }, [
-      el('h2', { id: 'fb-chooser-title', text: '구매자 의견 유형 선택' }),
-      el('p', { text: '세 유형 중 하나를 고르면 입력 양식이 열립니다.' })
-    ].concat(buttons.map(function (b) { return el('div', null, [b]); })));
+    var wrap = el('div', { className: 'fb-chooser fm-form' }, [
+      el('h2', { id: 'fb-chooser-title', className: 'fm-title', text: '구매자 의견 유형 선택' }),
+      el('p', { className: 'fm-fields', text: '세 유형 중 하나를 고르면 입력 양식이 열립니다.' })
+    ].concat(buttons.map(function (b) { return el('div', { className: 'fb-kind-row' }, [b]); })));
     var close = el('button', { type: 'button', className: 'fm-btn', text: '닫기' });
-    wrap.appendChild(close);
+    wrap.appendChild(el('div', { className: 'fm-actions' }, [el('div', { className: 'fm-buttons' }, [close])]));
     dialog.appendChild(wrap);
-    function done() { dialog.close(); dialog.remove(); }
+    // remove only: 다른 양식을 바로 여는 경우에는 호출 위치로 포커스를 돌리지 않는다.
+    function done(restore) {
+      dialog.remove();
+      if (restore && opener && opener.isConnected && typeof opener.focus === 'function') opener.focus();
+    }
     buttons.forEach(function (b, i) {
-      b.onclick = function () { done(); open(Object.keys(KIND_LABELS)[i]); };
+      b.onclick = function () { done(false); open(Object.keys(KIND_LABELS)[i], opener); };
     });
-    close.onclick = done;
-    dialog.addEventListener('cancel', function () { dialog.remove(); });
+    close.onclick = function () { done(true); };
+    dialog.addEventListener('cancel', function (ev) { ev.preventDefault(); done(true); });
+    dialog.addEventListener('keydown', function (ev) {
+      if (ev.key !== 'Tab') return;
+      var items = [].slice.call(dialog.querySelectorAll('button:not([disabled])'));
+      var first = items[0];
+      var last = items[items.length - 1];
+      if (ev.shiftKey && document.activeElement === first) { ev.preventDefault(); last.focus(); }
+      else if (!ev.shiftKey && document.activeElement === last) { ev.preventDefault(); first.focus(); }
+    });
     (document.getElementById('dialog-root') || document.body).appendChild(dialog);
     if (typeof dialog.showModal === 'function') dialog.showModal();
     else dialog.setAttribute('open', '');
     buttons[0].focus();
   }
 
-  function open(kind) {
+  function open(kind, opener) {
     if (!KIND_LABELS[kind]) {
       chooser();
       return;
     }
     if (!window.FMForms) return;
     window.FMForms.openForm({
+      opener: opener || document.activeElement,
       title: KIND_LABELS[kind] + ' 의견 남기기',
       submitLabel: '의견 저장',
       fields: [

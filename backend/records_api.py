@@ -18,6 +18,7 @@ MAX_JSON_BYTES = 1024 * 1024
 MAX_TITLE_CHARS = 120
 MAX_BODY_CHARS = 20000
 MATERIAL_KEYS = {"title", "body", "synthetic"}
+MAX_QUERY_CHARS = 100
 
 
 def _error(status, code, message, **extra):
@@ -63,6 +64,64 @@ def _int_arg(name, default, low, high):
     return value, None
 
 
+def _text_arg(name, max_chars):
+    """Optional text filter. Blank values mean "no filter"; the value is trimmed."""
+    raw = request.args.get(name)
+    if raw is None:
+        return "", None
+    value = raw.strip()
+    if len(value) > max_chars:
+        return None, f"{name}: {max_chars}자 이하여야 합니다."
+    return value, None
+
+
+def _like_escape(text):
+    return text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
+def _search_records(conn, record_type, *, q="", field="", status="", limit=50, offset=0):
+    """List one record type with optional filters (TRD §8.1).
+
+    q: case-insensitive substring of title or body (ASCII case only; Hangul matches as-is).
+    field: exact match on the record's 분야 value (fields_json "domain").
+    status: exact match on the record status.
+    Without filters the result equals db.list_records. Order is created_at DESC, id DESC.
+    """
+    db.check_type(record_type)
+    clauses = ["type = ?"]
+    params = [record_type]
+    if q:
+        pattern = f"%{_like_escape(q)}%"
+        clauses.append("(title LIKE ? ESCAPE '\\' OR body LIKE ? ESCAPE '\\')")
+        params += [pattern, pattern]
+    if field:
+        clauses.append("json_extract(fields_json, '$.domain') = ?")
+        params.append(field)
+    if status:
+        clauses.append("status = ?")
+        params.append(status)
+    where = " AND ".join(clauses)
+    total = conn.execute(f"SELECT COUNT(*) AS n FROM records WHERE {where}", params).fetchone()["n"]
+    rows = conn.execute(
+        "SELECT id, type, title, status, synthetic, version, updated_at FROM records "
+        f"WHERE {where} ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?",
+        [*params, limit, offset],
+    ).fetchall()
+    items = [
+        {
+            "id": r["id"],
+            "type": r["type"],
+            "title": r["title"],
+            "status": r["status"],
+            "synthetic": bool(r["synthetic"]),
+            "version": r["version"],
+            "updated_at": r["updated_at"],
+        }
+        for r in rows
+    ]
+    return items, total
+
+
 def _validate_material(data):
     errors = {}
     for key in data:
@@ -101,8 +160,18 @@ def list_records(record_type):
     offset, err = _int_arg("offset", 0, 0, 10**9)
     if err:
         return _error(400, "validation_error", err, fields={"offset": err})
+    q, err = _text_arg("q", MAX_QUERY_CHARS)
+    if err:
+        return _error(400, "validation_error", err, fields={"q": err})
+    field, err = _text_arg("field", MAX_QUERY_CHARS)
+    if err:
+        return _error(400, "validation_error", err, fields={"field": err})
+    status, err = _text_arg("status", MAX_QUERY_CHARS)
+    if err:
+        return _error(400, "validation_error", err, fields={"status": err})
     with closing(_conn()) as conn:
-        items, total = db.list_records(conn, record_type, limit=limit, offset=offset)
+        items, total = _search_records(conn, record_type, q=q, field=field, status=status,
+                                       limit=limit, offset=offset)
     return jsonify(items=items, total=total)
 
 

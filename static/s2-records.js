@@ -66,7 +66,12 @@
   };
 
   // 화면 인스턴스 사이에 유지되는 선택 상태 (화면 이동 뒤 돌아와도 같은 유형을 연다).
-  var state = { type: 'materials', selectedId: null, listToken: 0, detailToken: 0 };
+  // query는 목록 검색 조건이다. 기록을 열었다 돌아와도 같은 조건으로 목록을 다시 연다.
+  var state = {
+    type: 'materials', selectedId: null, listToken: 0, detailToken: 0,
+    query: { q: '', field: '', status: '' }
+  };
+  var QUERY_MAX = 100;
 
   function typeInfo(key) {
     for (var i = 0; i < TYPES.length; i += 1) {
@@ -185,9 +190,92 @@
     ui.listHeading = el('h2', { className: 'section-title', id: 's2-list-heading', tabindex: '-1', text: '목록' });
     return el('section', { className: 's2-list', 'aria-labelledby': 's2-list-heading' }, [
       ui.listHeading,
+      buildSearch(ui),
       ui.count,
       ui.listBody
     ]);
+  }
+
+  function cleanQuery(value) {
+    return String(value === undefined || value === null ? '' : value).trim();
+  }
+
+  function isSearching() {
+    return !!(state.query.q || state.query.field || state.query.status);
+  }
+
+  function describeQuery() {
+    var parts = [];
+    if (state.query.q) parts.push('검색어 "' + state.query.q + '"');
+    if (state.query.field) parts.push('분야 "' + state.query.field + '"');
+    if (state.query.status) parts.push('상태 "' + state.query.status + '"');
+    return parts.join(' · ');
+  }
+
+  function searchQueryString() {
+    var params = new URLSearchParams();
+    ['q', 'field', 'status'].forEach(function (key) {
+      if (state.query[key]) params.set(key, state.query[key]);
+    });
+    var text = params.toString();
+    return text ? '?' + text : '';
+  }
+
+  // 검색 입력은 제출(검색 버튼·Enter)할 때만 목록을 다시 불러온다.
+  function applySearch(q, field, status) {
+    state.query = {
+      q: cleanQuery(q).slice(0, QUERY_MAX),
+      field: cleanQuery(field).slice(0, QUERY_MAX),
+      status: cleanQuery(status).slice(0, QUERY_MAX)
+    };
+    syncSearchInputs();
+    loadList();
+  }
+
+  function syncSearchInputs() {
+    if (!ui || !ui.search) return;
+    ui.search.q.value = state.query.q;
+    ui.search.field.value = state.query.field;
+    ui.search.status.value = state.query.status;
+  }
+
+  function buildSearch(ui) {
+    var qInput = el('input', {
+      id: 's2-q', type: 'search', className: 's2-input', name: 'q', maxlength: String(QUERY_MAX),
+      autocomplete: 'off', placeholder: '제목이나 본문 일부'
+    });
+    var fieldInput = el('input', {
+      id: 's2-field', type: 'text', className: 's2-input', name: 'field', maxlength: String(QUERY_MAX),
+      autocomplete: 'off', placeholder: '예: 행정'
+    });
+    var statusInput = el('input', {
+      id: 's2-status', type: 'text', className: 's2-input', name: 'status', maxlength: String(QUERY_MAX),
+      autocomplete: 'off', placeholder: '예: draft'
+    });
+    ui.search = { q: qInput, field: fieldInput, status: statusInput };
+    syncSearchInputs();
+
+    var submit = el('button', { type: 'submit', className: 'btn btn-primary', text: '검색' });
+    var reset = el('button', { type: 'button', className: 'btn btn-secondary', text: '검색 지우기' });
+    reset.addEventListener('click', function () { applySearch('', '', ''); });
+
+    var form = el('form', { className: 's2-search', role: 'search', 'aria-label': '기록 검색' }, [
+      el('div', { className: 's2-field' }, [
+        el('label', { 'for': 's2-q', className: 's2-label', text: '검색어 (제목·본문)' }), qInput
+      ]),
+      el('div', { className: 's2-field' }, [
+        el('label', { 'for': 's2-field', className: 's2-label', text: '분야' }), fieldInput
+      ]),
+      el('div', { className: 's2-field' }, [
+        el('label', { 'for': 's2-status', className: 's2-label', text: '상태' }), statusInput
+      ]),
+      el('div', { className: 's2-search-actions' }, [submit, reset])
+    ]);
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+      applySearch(qInput.value, fieldInput.value, statusInput.value);
+    });
+    return form;
   }
 
   function buildDetailPane(ui) {
@@ -262,10 +350,11 @@
     ui.count.textContent = '';
     ui.listBody.appendChild(statusBlock('loading', MSG.loading));
 
-    request('/api/records/' + encodeURIComponent(type)).then(function (data) {
+    request('/api/records/' + encodeURIComponent(type) + searchQueryString()).then(function (data) {
       if (token !== state.listToken || !ui || !ui.listBody.isConnected) return;
       var items = Array.isArray(data.items) ? data.items : [];
-      renderList(info, items);
+      var total = typeof data.total === 'number' ? data.total : items.length;
+      renderList(info, items, total);
     }, function (err) {
       if (token !== state.listToken || !ui || !ui.listBody.isConnected) return;
       renderListError(errorText(err, MSG.listNotFound));
@@ -283,11 +372,26 @@
     ]));
   }
 
-  function renderList(info, items) {
+  function searchEmptyBlock(info) {
+    var reset = el('button', { type: 'button', className: 'btn btn-secondary', text: '검색 지우기' });
+    reset.addEventListener('click', function () { applySearch('', '', ''); });
+    return el('section', { className: 'empty-state s2-empty', 'aria-labelledby': 's2-search-empty-title' }, [
+      el('h3', { id: 's2-search-empty-title', text: '조건에 맞는 ' + info.label + ' 기록이 없어요' }),
+      el('p', { text: '검색 조건: ' + describeQuery() + '. 검색어를 줄이거나 분야·상태 조건을 바꾸거나 지워 다시 찾아 보세요.' }),
+      el('div', { className: 'next-action' }, [
+        el('span', { className: 'next-action-label', text: '다음 행동' }),
+        reset
+      ])
+    ]);
+  }
+
+  function renderList(info, items, total) {
     ui.listBody.textContent = '';
-    ui.count.textContent = '저장된 ' + info.label + ' 기록 ' + items.length + '건';
+    ui.count.textContent = isSearching()
+      ? '검색 결과 ' + total + '건 (' + describeQuery() + ')'
+      : '저장된 ' + info.label + ' 기록 ' + total + '건';
     if (!items.length) {
-      ui.listBody.appendChild(emptyBlock(info));
+      ui.listBody.appendChild(isSearching() ? searchEmptyBlock(info) : emptyBlock(info));
       return;
     }
     var list = el('ul', { className: 's2-cards' });

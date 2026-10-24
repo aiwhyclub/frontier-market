@@ -202,17 +202,30 @@ def create_feedback():
     if "synthetic" in data and data["synthetic"] is not True:
         errors["synthetic"] = "현재는 합성 의견만 저장할 수 있습니다(true)."
     try:
+        idem = db.normalize_idempotency_key(request.headers.get("Idempotency-Key"))
+    except ValueError as exc:
+        return _error(400, "validation_error", str(exc), {"Idempotency-Key": str(exc)})
+    try:
         with closing(_conn()) as conn:
             pairs = _validate_links(conn, data.get("links"), errors)
             if errors:
                 return _error(400, "validation_error", "입력을 확인해 주세요.", errors)
             with db.write_transaction(conn):
-                fid = db.create_record(conn, "feedback", title=title, status=status or None,
-                                       synthetic=True, body=note,
-                                       fields={"kind": kind, "target_note": target_note})
-                for ltype, lid in pairs or []:
-                    db.add_link(conn, "feedback", fid, ltype, lid, LINK_RELATION)
+                prior = db.replay_idempotent(conn, "feedback.create", idem, data) if idem else None
+                if prior:
+                    fid = prior[1]
+                else:
+                    fid = db.create_record(conn, "feedback", title=title, status=status or None,
+                                           synthetic=True, body=note,
+                                           fields={"kind": kind, "target_note": target_note})
+                    for ltype, lid in pairs or []:
+                        db.add_link(conn, "feedback", fid, ltype, lid, LINK_RELATION)
+                    if idem:
+                        db.remember_idempotent(conn, "feedback.create", idem, data, "feedback", fid)
             detail = _feedback_item(conn, fid)
+    except db.IdempotencyConflict:
+        return _error(409, "idempotency_conflict",
+                      "같은 요청 번호로 다른 내용이 이미 저장되었습니다. 새로 작성해 주세요.")
     except sqlite3.Error:
         return _error(500, "storage_error", "저장하지 못했습니다. 입력은 그대로 두었으니 다시 시도해 주세요.")
     return jsonify(detail), 201

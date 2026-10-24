@@ -81,8 +81,8 @@ def _scope_of(rec, now):
     status = rec.get("status")
     if status not in ACTIVE_RIGHT_STATUSES:
         return None, f"상태 {status}"
-    expires = rec.get("expires_at")
-    if expires and str(expires) < now:
+    expires = rec.get("valid_until") or rec.get("expires_at")
+    if expires and str(expires) < now[:10]:
         return None, "기간 만료"
     if status == "eval_only":
         purposes = {"evaluation"}
@@ -94,25 +94,35 @@ def _scope_of(rec, now):
             "purposes": sorted(purposes)}, None
 
 
-def _subject_hold(conn, subject_type, subject_id, purpose, now):
-    """Return a HOLD dict for one subject and purpose, or None when the scope covers it."""
+def _subject_hold(conn, subject_type, subject_id, purpose, now, pinned_hash=None):
+    """Return a HOLD dict for one subject and purpose, or None when the scope covers it.
+
+    Grants bound to another content hash (H) are past content and are ignored. Every other
+    grant for the same content must be active: a revoked, unconfirmed or expired grant holds.
+    Unbound legacy grants (no H) are kept as before.
+    """
     rec = db.get_record(conn, subject_type, subject_id)
     title = rec.get("title") if rec else subject_id
+    current_hash = pinned_hash or (rec.get("material_hash") if rec else None)
 
     def hold(reason):
         return {"target_type": subject_type, "target_id": subject_id, "title": title,
                 "purpose": purpose, "reason": reason, "action": "rights_supplement"}
 
-    scopes, inactive = [], []
+    scopes, blocking = [], []
     for right in _rights_for(conn, subject_type, subject_id):
+        bound = right.get("subject_material_hash")
+        if bound and current_hash and bound != current_hash:
+            continue  # grant for another content version (H): not applicable to this content
         scope, why = _scope_of(right, now)
         if scope is None:
-            inactive.append(f"{right['id']}: {why}")
+            blocking.append(f"{right['id']}: {why}")
         else:
             scopes.append(scope)
+    if blocking:
+        return hold(f"현재 내용에 대한 권리가 유효하지 않습니다 ({'; '.join(blocking)}).")
     if not scopes:
-        detail = f" ({'; '.join(inactive)})" if inactive else ""
-        return hold(f"권리 기록이 없거나 유효하지 않아 이용 범위가 미확인입니다{detail}.")
+        return hold("권리 기록이 없거나 현재 내용에 대해 미확인입니다.")
     allowed = set.intersection(*(set(s["purposes"]) for s in scopes))
     if purpose in allowed:
         return None
@@ -229,7 +239,7 @@ def _export_gate(conn, pkg, now):
             if expert is None or not _expert_approved(expert):
                 holds.append({"target_type": stype, "target_id": sid, "title": sid, "purpose": purpose,
                               "reason": "전문가 승인 상태를 현재 확인할 수 없습니다.", "action": "review_required"})
-        hold = _subject_hold(conn, stype, sid, purpose, now)
+        hold = _subject_hold(conn, stype, sid, purpose, now, pinned_hash=item.get("material_hash"))
         if hold:
             holds.append(hold)
     return {"allowed": not holds, "checked_at": now, "holds": holds}
@@ -580,7 +590,9 @@ def supplement_rights():
             rid = db.create_record(
                 conn, "rights", title=f"권리 보완: {subject['title']}", status=status, synthetic=True,
                 fields={"purposes": sorted(purposes), "target_type": stype, "target_id": sid,
-                        "subject_version": subject["version"], "material_hash": subject["material_hash"],
+                        "subject_type": stype, "subject_id": sid,
+                        "subject_version": subject["version"],
+                        "subject_material_hash": subject["material_hash"],
                         "derivative": body.get("derivative") or "unknown",
                         "distribution": body.get("distribution") or "unknown",
                         "evidence": evidence, "confirmed_by": confirmed_by, "confirmed_at": now})

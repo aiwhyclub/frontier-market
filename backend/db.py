@@ -8,6 +8,7 @@ Uses only the standard sqlite3 module. Hashes and versions are kept apart (TRD Â
 
 import hashlib
 import json
+import re
 import secrets
 import sqlite3
 from contextlib import contextmanager
@@ -384,3 +385,53 @@ def relations(conn, record_type, record_id):
         if not present:
             missing.append({"type": "|".join(other_types), "relation": relation, "reason": reason})
     return links, missing
+
+
+# --- Idempotent creates (EPIC 11.4) -------------------------------------------------
+# A client may send an Idempotency-Key header on create requests. The first request creates the
+# record and remembers (scope, key) -> record id plus a fingerprint of the payload, in `metadata`.
+# A retry with the same key and payload returns the same record and writes nothing; the same key
+# with a different payload is refused. Call these helpers inside the caller's write transaction.
+
+_IDEMPOTENCY_KEY_RE = re.compile(r"[A-Za-z0-9._-]{8,128}")
+
+
+class IdempotencyConflict(Exception):
+    pass
+
+
+def normalize_idempotency_key(raw):
+    """Return the stripped key, None when absent, or raise ValueError when malformed."""
+    if raw is None:
+        return None
+    key = raw.strip()
+    if not _IDEMPOTENCY_KEY_RE.fullmatch(key):
+        raise ValueError("Idempotency-Key must be 8-128 characters of letters, digits, '.', '_' or '-'")
+    return key
+
+
+def _idem_row_key(scope, key):
+    return f"idem:{scope}:{key}"
+
+
+def _payload_fingerprint(payload):
+    return hashlib.sha256(canonical_json(payload).encode("utf-8")).hexdigest()
+
+
+def replay_idempotent(conn, scope, key, payload):
+    """Return (record_type, record_id) if this key already created a record, else None.
+
+    Raises IdempotencyConflict if the key was used before with a different payload.
+    """
+    stored = get_metadata(conn, _idem_row_key(scope, key))
+    if stored is None:
+        return None
+    record_type, record_id, fingerprint = stored.split("|", 2)
+    if fingerprint != _payload_fingerprint(payload):
+        raise IdempotencyConflict(key)
+    return record_type, record_id
+
+
+def remember_idempotent(conn, scope, key, payload, record_type, record_id):
+    set_metadata(conn, _idem_row_key(scope, key),
+                 f"{record_type}|{record_id}|{_payload_fingerprint(payload)}")

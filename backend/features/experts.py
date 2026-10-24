@@ -173,10 +173,24 @@ def create_candidate():
         "evaluation_status": "candidate", "evaluation": None, "evaluations": [],
         "reevaluation_required": False, "reevaluation_reason": None,
     }
-    with closing(_conn()) as conn, db.write_transaction(conn):
-        rid = db.create_record(conn, "experts", title=name, status="candidate",
-                               synthetic=synthetic, fields=fields)
-        item = db.get_record(conn, "experts", rid)
+    try:
+        idem = db.normalize_idempotency_key(request.headers.get("Idempotency-Key"))
+    except ValueError as exc:
+        return _error(400, "validation", str(exc), fields={"Idempotency-Key": str(exc)})
+    try:
+        with closing(_conn()) as conn, db.write_transaction(conn):
+            prior = db.replay_idempotent(conn, "experts.create", idem, data) if idem else None
+            if prior:
+                rid = prior[1]
+            else:
+                rid = db.create_record(conn, "experts", title=name, status="candidate",
+                                       synthetic=synthetic, fields=fields)
+                if idem:
+                    db.remember_idempotent(conn, "experts.create", idem, data, "experts", rid)
+            item = db.get_record(conn, "experts", rid)
+    except db.IdempotencyConflict:
+        return _error(409, "idempotency_conflict",
+                      "같은 요청 번호로 다른 내용이 이미 저장되었습니다. 새로 작성해 주세요.")
     return jsonify(item=item), 201
 
 

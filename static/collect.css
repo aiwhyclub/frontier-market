@@ -1,5 +1,6 @@
 /* S1 자료 수집 화면 */
-.cl-screen { display: grid; gap: 16px; padding: 16px; max-width: 960px; margin: 0 auto; }
+.cl-screen { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; padding: 16px 0; max-width: 960px; margin: 0 auto; min-width: 0; }
+.cl-section, .cl-form, .cl-field { min-width: 0; }
 .cl-head h2 { margin: 0 0 4px; }
 .cl-section { border: 1px solid var(--line, #d9d9d9); border-radius: 10px; padding: 14px; background: var(--surface, #fff); }
 .cl-section h3 { margin: 0 0 10px; font-size: 1.05rem; }

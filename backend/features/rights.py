@@ -494,9 +494,15 @@ def patch_rights(rights_id):
             return _error(400, "validation_error", "입력을 확인해 주세요.",
                           fields={"subject_version": msg})
         status_from = current.get("status")
+        fields = _fields_from(clean, subject_hash, current)
+        substantive = ("subject_version", "subject_material_hash", "holder", "purposes", "derivative",
+                       "distribution", "reason", "evidence", "restrictions", "valid_until")
+        if clean["status"] == status_from and all(fields.get(k) == current.get(k) for k in substantive):
+            # identical reconfirmation: no new version, event or confirmation timestamp
+            state = gate_state(conn, clean["subject_type"], clean["subject_id"])
+            return jsonify(item=_summary(current, _today(), state["subject"]["material_hash"]), state=state)
         try:
             with db.write_transaction(conn):
-                fields = _fields_from(clean, subject_hash, current)
                 changes = {"status": clean["status"], "fields": fields,
                            "title": _title(subject, clean["subject_version"])}
                 item = db.update_record(conn, "rights", rights_id, expected_version=expected,

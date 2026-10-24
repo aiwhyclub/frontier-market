@@ -191,7 +191,7 @@
     if (formButton) {
       document.dispatchEvent(new CustomEvent('fm:open-form', {
         bubbles: true,
-        detail: { form: formButton.getAttribute('data-form') }
+        detail: { form: formButton.getAttribute('data-form'), opener: formButton }
       }));
     }
   }

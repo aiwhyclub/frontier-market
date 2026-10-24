@@ -166,7 +166,8 @@
     var fields = Array.isArray(options.fields) ? options.fields : [];
     var onSubmit = typeof options.onSubmit === 'function' ? options.onSubmit : function () {};
     var submitLabel = String(options.submitLabel || MSG.submit);
-    var opener = document.activeElement;
+    // options.opener: 호출 위치(버튼)를 명시하면 닫을 때 그곳으로 포커스를 돌린다.
+    var opener = options.opener || document.activeElement;
     var titleId = uid('title');
     var controls = {};
     var saving = false;
@@ -390,10 +391,13 @@
     getRoot();
     ensureToastRegion();
     // 화면 셸(app.js)의 다음 행동 버튼이 보내는 요청을 같은 공통 폼으로 연다.
-    document.addEventListener('fm:open-form', function () {
-      var opener = document.activeElement;
+    document.addEventListener('fm:open-form', function (ev) {
+      var opener = (ev.detail && ev.detail.opener) || document.activeElement;
+      // body의 textContent는 페이지 전체 글이므로 버튼일 때만 제목으로 쓴다.
+      var label = opener && opener !== document.body && opener.textContent ? opener.textContent.trim() : '';
       FMForms.openForm({
-        title: (opener && opener.textContent.trim()) || '등록',
+        opener: opener,
+        title: label || '등록',
         fields: [
           { name: 'title', label: '제목', type: 'text', required: true },
           { name: 'note', label: '메모', type: 'textarea', required: false }

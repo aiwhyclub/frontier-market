@@ -129,3 +129,29 @@ main#main-content:focus{outline:none}
 @media (prefers-reduced-motion:reduce){
   *{transition:none!important;animation:none!important}
 }
+
+/* STORY 11.2/11.3: 320~1440px 공통 점검. 표 대신 목록·카드, 44px 조작 영역, safe-area, 가로 넘침 방지 */
+body{padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
+main#main-content{min-width:0;padding-bottom:calc(48px + env(safe-area-inset-bottom,0px))}
+.screen,.screen>*{min-width:0}
+img,svg,video,canvas{max-width:100%;height:auto}
+a{overflow-wrap:anywhere}
+button,a.btn,.btn,.fm-btn,.cl-btn,.cl-link,.nav-toggle,.stage-card,.catalog-card-open,.s2-row-button,.fb-tab,.fb-kind-btn{min-height:44px;touch-action:manipulation}
+input:not([type="checkbox"]):not([type="radio"]),select{min-height:44px}
+input,select,textarea{font-size:16px}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+/* 기능 화면 목록·카드: 좁은 폭에서 한 열, 넓은 폭에서 자동 열 */
+.catalog-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr));list-style:none;margin:0;padding:0}
+.catalog-card{display:flex;flex-direction:column;gap:8px;min-width:0;padding:16px;border:1px solid var(--divider);border-radius:var(--radius);background:var(--surface)}
+.catalog-card-open{width:100%;text-align:left;background:transparent;border:0;color:inherit;font:inherit;cursor:pointer;padding:0}
+.catalog-dl{margin:0;display:grid;gap:4px}
+.fde-actions,.refine-actions,.refine-tabs,.s2-actions,.fm-toolbar,.fb-actions,.fb-tabs,.fb-links{display:flex;flex-wrap:wrap;gap:8px;min-width:0}
+.fde-item,.refine-item,.refine-section,.fb-list li,.s2-row,.fde-row{min-width:0;overflow-wrap:anywhere}
+.fb-stage-grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,140px),1fr))}
+@media (max-width:519px){
+  .fde-actions>*,.refine-actions>*,.s2-actions>*,.fb-actions>*,.fb-links>*{flex:1 1 auto}
+  .fb-stage-grid,.catalog-grid{grid-template-columns:1fr}
+}
+@media (min-width:520px) and (max-width:1023px){
+  .catalog-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
