@@ -53,6 +53,7 @@ class Settings:
     cookie_secure: bool
     operator_ttl: int
     visitor_ttl: int
+    operator_end: object = None
 
     @classmethod
     def from_env(cls, env):
@@ -69,7 +70,8 @@ class Settings:
             public=public, secret=get("FM_SECRET_KEY"), operator_token=get("OPERATOR_TOKEN"),
             end=end, cookie_secure=get("FM_COOKIE_SECURE", "1") != "0",
             operator_ttl=int(get("FM_OPERATOR_TTL", "28800") or 28800),
-            visitor_ttl=int(get("FM_VISITOR_TTL", "21600") or 21600))
+            visitor_ttl=int(get("FM_VISITOR_TTL", "21600") or 21600),
+            operator_end=_parse_optional(get("FM_OPERATOR_END")))
 
     def config_problems(self):
         """Public mode fails closed: any missing or weak setting makes every request 503."""
@@ -81,6 +83,13 @@ class Settings:
         if self.end is None:
             problems.append("FM_PUBLIC_END")
         return problems
+
+
+def _parse_optional(text):
+    try:
+        return parse_utc(text) if text else None
+    except ValueError:
+        return None
 
 
 def settings():
@@ -176,6 +185,9 @@ def gate():
         return None
     if cfg.config_problems():
         return error(503, "misconfigured", "공개 시연 설정이 완료되지 않아 요청을 받지 않습니다.")
+    if cfg.operator_end is not None and now() >= cfg.operator_end:
+        # Hard stop: operator token is retired too, so every route (login included) is refused.
+        return error(410, "closed", "공개 시연과 운영자 접근이 모두 종료되었습니다.")
     path = request.path
     closed = is_closed()
     g.role = None

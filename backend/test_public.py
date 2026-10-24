@@ -320,3 +320,22 @@ class OperatorOnlyTest(PublicBase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class OperatorEndTest(unittest.TestCase):
+    """FM_OPERATOR_END: after it, operator login and every route are refused too."""
+
+    def test_operator_hard_stop(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        op_end = datetime(2026, 10, 24, 22, 0, 0, tzinfo=KST)
+        clock = Clock(op_end - timedelta(seconds=1))
+        app = create_app(ROOT, Path(tmp.name) / "pub.sqlite3",
+                         env={**ENV, "FM_OPERATOR_END": "2026-10-24T13:00:00Z"}, clock=clock)
+        client = app.test_client()
+        self.assertEqual(client.post("/api/auth/login", json={"token": OP_TOKEN}).status_code, 200)
+        self.assertEqual(client.get("/api/records/works").status_code, 200)
+        clock.at = op_end
+        self.assertEqual(client.get("/api/records/works").status_code, 410)
+        self.assertEqual(client.post("/api/auth/login", json={"token": OP_TOKEN}).status_code, 410)
+        self.assertEqual(client.get("/").status_code, 410)
