@@ -11,13 +11,13 @@
 
   window.FMScreens = window.FMScreens || {};
 
-  var TYPE_LABEL = { materials: t('collect.materials'), experts: t('app.experts'), works: t('demo.work') };
-  var STATUS_LABEL = {
+  var TYPE_LABEL = FMI18n.lazy(function () { return { materials: t('collect.materials'), experts: t('app.experts'), works: t('demo.work') }; });
+  var STATUS_LABEL = FMI18n.lazy(function () { return {
     confirmed: t('rights.confirmed'), restricted: t('rights.restricted'), unconfirmed: t('catalog.unconfirmed'),
     revoked: t('rights.revoked'), expired: t('rights.expired'), legacy: t('rights.legacy_format')
-  };
-  var PERM_LABEL = { unknown: t('catalog.unconfirmed'), allowed: t('rights.allowed'), denied: t('rights.denied') };
-  var PURPOSE_LABEL = { training: t('rights.training'), evaluation: t('rights.evaluation') };
+  }; });
+  var PERM_LABEL = FMI18n.lazy(function () { return { unknown: t('catalog.unconfirmed'), allowed: t('rights.allowed'), denied: t('rights.denied') }; });
+  var PURPOSE_LABEL = FMI18n.lazy(function () { return { training: t('rights.training'), evaluation: t('rights.evaluation') }; });
 
   function el(tag, cls, text) {
     var node = document.createElement(tag);

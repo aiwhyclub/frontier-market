@@ -6,8 +6,8 @@
   'use strict';
   window.FMScreens = window.FMScreens || {};
 
-  var KIND = { plan: t('fde.plan'), progress: t('fde.progress'), review: t('fde.review'), site_result: t('fde.on_site_result') };
-  var BASIS = { planned: t('fde.planned_value'), synthetic: t('fde.synthetic_site'), actual: t('fde.actual_result_recorded_by_a') };
+  var KIND = FMI18n.lazy(function () { return { plan: t('fde.plan'), progress: t('fde.progress'), review: t('fde.review'), site_result: t('fde.on_site_result') }; });
+  var BASIS = FMI18n.lazy(function () { return { planned: t('fde.planned_value'), synthetic: t('fde.synthetic_site'), actual: t('fde.actual_result_recorded_by_a') }; });
 
   function el(tag, attrs, children) {
     var node = document.createElement(tag);

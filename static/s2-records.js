@@ -22,7 +22,7 @@
 
   window.FMScreens = window.FMScreens || {};
 
-  var TYPES = [
+  var TYPES = FMI18n.lazy(function () { return [
     { key: 'materials', label: t('collect.materials'), empty: {
       body: t('s2.collect_a_public_url_or'),
       form: 'source', action: t('app.open_material_form') } },
@@ -47,9 +47,9 @@
     { key: 'feedback', label: t('feedback.feedback_2'), empty: {
       body: t('s2.buyer_feedback_can_be_left'),
       href: '#s4', action: t('s2.go_to_s4_catalog') } }
-  ];
+  ]; });
 
-  var MSG = {
+  var MSG = FMI18n.lazy(function () { return {
     loading: t('demo.loading'),
     network: t('s2.could_not_reach_the_server'),
     server: t('s2.could_not_load_records_please'),
@@ -63,7 +63,7 @@
     noReason: t('s2.no_link_reason_recorded'),
     synthetic: t('s2.synthetic_example'),
     unknownType: t('s2.other_records')
-  };
+  }; });
 
   // 화면 인스턴스 사이에 유지되는 선택 상태 (화면 이동 뒤 돌아와도 같은 유형을 연다).
   // query는 목록 검색 조건이다. 기록을 열었다 돌아와도 같은 조건으로 목록을 다시 연다.

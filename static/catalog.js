@@ -3,8 +3,8 @@
   'use strict';
   window.FMScreens = window.FMScreens || {};
 
-  var STATUS_LABEL = { draft: t('catalog.draft'), ready: t('catalog.ready'), hold: t('catalog.on_hold') };
-  var AXIS_HINT = t('catalog.write_the_evidence_or_write');
+  var STATUS_LABEL = FMI18n.lazy(function () { return { draft: t('catalog.draft'), ready: t('catalog.ready'), hold: t('catalog.on_hold') }; });
+  function axisHint() { return t('catalog.write_the_evidence_or_write'); }
 
   function el(tag, attrs, children) {
     var node = document.createElement(tag);
@@ -46,7 +46,7 @@
   }
   function lines(v) { return v ? v.split('\n').map(function (s) { return s.trim(); }).filter(Boolean) : []; }
 
-  var CREATE_FIELDS = [
+  var CREATE_FIELDS = FMI18n.lazy(function () { return [
     { name: 'title', label: t('catalog.title_judgement_task_name'), type: 'text', required: true },
     { name: 'domain', label: t('catalog.domain'), type: 'text', required: true },
     { name: 'summary', label: t('catalog.summary'), type: 'textarea', required: true },
@@ -58,23 +58,23 @@
     { name: 'novice_gap', label: t('catalog.novice_differences'), type: 'textarea' },
     { name: 'evidence_refs', label: t('catalog.evidence_references_one_per_line'), type: 'textarea' },
     { name: 'media_refs', label: t('catalog.media_references_one_per_line'), type: 'textarea' }
-  ];
-  var AXIS_FIELDS = [
+  ]; });
+  var AXIS_FIELDS = FMI18n.lazy(function () { return [
     { name: 'origin', label: t('catalog.origin_in_apprenticeship_experience'), type: 'textarea' },
     { name: 'documentation_gap', label: t('catalog.non_standard_undocumented_gap'), type: 'textarea' },
     { name: 'field_need', label: t('catalog.on_site_baseline_need_cost'), type: 'textarea' },
     { name: 'novice_difference', label: t('catalog.expert_vs_novice_difference'), type: 'textarea' },
     { name: 'outcome_verifiability', label: t('catalog.verifiability_of_results'), type: 'textarea' },
     { name: 'lab_link', label: t('catalog.link_to_lab_evaluated_capability'), type: 'textarea' }
-  ];
+  ]; });
   var EDIT_FIELDS = CREATE_FIELDS.map(function (f) {
     return { name: f.name, label: f.label, type: f.type, required: false };
   });
-  var LINK_FIELDS = [
+  var LINK_FIELDS = FMI18n.lazy(function () { return [
     { name: 'source_ids', label: t('catalog.material_ids_comma_separated'), type: 'text' },
     { name: 'expert_ids', label: t('catalog.approved_expert_ids_comma_separated'), type: 'text' },
     { name: 'work_ids', label: t('catalog.raw_work_ids_comma_separated'), type: 'text' }
-  ];
+  ]; });
 
   function ids(v) { return v ? v.split(',').map(function (s) { return s.trim(); }).filter(Boolean) : []; }
 
@@ -119,11 +119,11 @@
     });
   }
 
-  var DRAFT_FIELDS = [
+  var DRAFT_FIELDS = FMI18n.lazy(function () { return [
     ['title', t('catalog.title_judgement_task_name'), 'input'], ['domain', t('catalog.domain'), 'input'], ['summary', t('catalog.summary'), 'textarea'],
     ['judgement_task', t('catalog.judgement_task_to_buy'), 'textarea'], ['target_capability', t('catalog.target_capability'), 'input'],
     ['expected_deliverables', t('catalog.expected_deliverables'), 'textarea']
-  ];
+  ]; });
 
   /* F10.4: AI가 자료를 근거로 만든 초안을 사람이 읽고 고쳐서 채택한다. 수동 작성이 기본 경로다. */
   function aiDraftPanel(root, openCard) {
@@ -288,7 +288,7 @@
       }
       function axesCard() {
         window.FMForms.openForm({
-          title: t('catalog.record_six_axes_2') + ' ' + AXIS_HINT,
+          title: t('catalog.record_six_axes_2') + ' ' + axisHint(),
           fields: AXIS_FIELDS,
           onSubmit: function (values) {
             var axes = {};

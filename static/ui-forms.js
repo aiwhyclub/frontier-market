@@ -25,7 +25,7 @@
     'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),' +
     'textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
-  var MSG = {
+  var MSG = FMI18n.lazy(function () { return {
     saving: t('forms.saving'),
     saved: t('forms.saved_your_input_has_been'),
     failed: t('forms.could_not_save_your_input'),
@@ -36,7 +36,7 @@
     required: function (label) { return t('forms.please_enter_label', { label: label }); },
     url: function (label) { return t('forms.label_must_be_an_http_or', { label: label }); },
     number: function (label) { return t('forms.label_must_be_a_number', { label: label }); }
-  };
+  }; });
 
   var seq = 0;
   function uid(prefix) {

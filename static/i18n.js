@@ -5,7 +5,13 @@
  *   `{name}` placeholders are filled from vars.
  * - Every same-origin fetch carries `X-FM-Lang`, so the server answers errors in the chosen language.
  * - Static HTML is translated through data-i18n="key" (text) and data-i18n-attrs="attr:key;attr2:key2".
- * - Switching the language reloads the page, which re-renders every screen in the new language. */
+ * - Switching the language does NOT reload. setLang() re-applies static HTML, redraws the switch and
+ *   dispatches `fm:langchange` (detail.lang); app.js re-renders the current route. Modules build their
+ *   label tables with FMI18n.lazy(factory) so they follow the language (rebuilt on first use after a switch).
+ * - Unsaved input: if a form/dialog with a typed-in field is open (or the focused field is an input),
+ *   the route is NOT re-rendered (that would wipe the input). Only the static chrome (data-i18n, header,
+ *   switch) updates; the body re-renders in the new language on the next navigation or when the
+ *   user closes the form. app.js decides via FMI18n.hasUnsavedInput(). */
 (function () {
   'use strict';
 
@@ -1685,8 +1691,45 @@
     lang = next;
     writeStored(lang);
     document.documentElement.setAttribute('lang', lang);
-    document.dispatchEvent(new CustomEvent('fm:lang-change', { detail: { lang: lang } }));
-    window.location.reload();
+    applyStatic(document);
+    renderSwitch();
+    var detail = { lang: lang, deferBody: hasUnsavedInput() };
+    document.dispatchEvent(new CustomEvent('fm:langchange', { detail: detail }));
+    document.dispatchEvent(new CustomEvent('fm:lang-change', { detail: detail }));
+  }
+
+  // True when a text-entry control inside main content or an open dialog holds a typed value.
+  function hasUnsavedInput() {
+    var nodes = document.querySelectorAll('main input, main textarea, main select, [role="dialog"] input, [role="dialog"] textarea, [role="dialog"] select, dialog[open] input, dialog[open] textarea');
+    for (var i = 0; i < nodes.length; i++) {
+      var n = nodes[i];
+      var type = (n.type || '').toLowerCase();
+      if (type === 'button' || type === 'submit' || type === 'hidden' || type === 'checkbox' || type === 'radio') { continue; }
+      if (n.closest && n.closest('.lang-switch')) { continue; }
+      if (n.value && n.value !== n.defaultValue) { return true; }
+    }
+    return false;
+  }
+
+  // lazy(factory): an object/array that rebuilds from factory() when the language changed.
+  function lazy(factory) {
+    var cache, cacheLang;
+    function cur() {
+      if (cacheLang !== lang || cache === undefined) { cache = factory(); cacheLang = lang; }
+      return cache;
+    }
+    var shape = Array.isArray(cur()) ? [] : {};
+    return new Proxy(shape, {
+      get: function (_, p) { var v = cur()[p]; return v; },
+      has: function (_, p) { return p in cur(); },
+      ownKeys: function () { return Reflect.ownKeys(cur()); },
+      getOwnPropertyDescriptor: function (_, p) {
+        var d = Object.getOwnPropertyDescriptor(cur(), p);
+        if (d && p !== 'length') { d.configurable = true; }
+        return d;
+      },
+      set: function (_, p, v) { cur()[p] = v; return true; }
+    });
   }
 
   function renderSwitch() {
@@ -1727,7 +1770,7 @@
     };
   }
 
-  window.FMI18n = { t: t, getLang: function () { return lang; }, setLang: setLang, applyStatic: applyStatic, supported: SUPPORTED.slice() };
+  window.FMI18n = { t: t, getLang: function () { return lang; }, setLang: setLang, applyStatic: applyStatic, lazy: lazy, hasUnsavedInput: hasUnsavedInput, supported: SUPPORTED.slice() };
   window.t = t;
 
   function ready() {

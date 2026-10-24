@@ -3,11 +3,11 @@
   "use strict";
   window.FMScreens = window.FMScreens || {};
 
-  var PURPOSE_LABEL = { training: t('company.training'), evaluation: t('company.evaluation') };
-  var STATE_LABEL = {
+  var PURPOSE_LABEL = FMI18n.lazy(function () { return { training: t('company.training'), evaluation: t('company.evaluation') }; });
+  var STATE_LABEL = FMI18n.lazy(function () { return {
     pending_review: t('company.awaiting_inspection'), inspected: t('company.inspected'), held: t('catalog.on_hold'), released: t('company.released_closed')
-  };
-  var ACTION_LABEL = { request_inspection: t('company.request_inspection'), hold: t('catalog.on_hold'), release: t('company.release') };
+  }; });
+  var ACTION_LABEL = FMI18n.lazy(function () { return { request_inspection: t('company.request_inspection'), hold: t('catalog.on_hold'), release: t('company.release') }; });
 
   function el(tag, attrs, children) {
     var node = document.createElement(tag);

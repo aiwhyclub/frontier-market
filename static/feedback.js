@@ -9,26 +9,26 @@
   window.FMScreens = window.FMScreens || {};
 
   var API = '/api/feedback';
-  var KIND_LABELS = { sample_review: t('feedback.sample_review'), pilot: t('feedback.paid_pilot_terms'), topic: t('feedback.topic_needed') };
-  var KIND_HINT = {
+  var KIND_LABELS = FMI18n.lazy(function () { return { sample_review: t('feedback.sample_review'), pilot: t('feedback.paid_pilot_terms'), topic: t('feedback.topic_needed') }; });
+  var KIND_HINT = FMI18n.lazy(function () { return {
     sample_review: t('feedback.leave_sample_review_feedback_saving'),
     pilot: t('feedback.leave_feedback_on_paid_pilot'),
     topic: t('feedback.leave_a_topic_you_need')
-  };
-  var TYPE_LABELS = {
+  }; });
+  var TYPE_LABELS = FMI18n.lazy(function () { return {
     materials: t('collect.materials'), works: t('feedback.work_raw_refined'), catalog: t('app.catalog'),
     projects: t('feedback.fde_project'), companies: t('app.virtual_company')
-  };
+  }; });
   var LINK_TYPES = ['materials', 'works', 'catalog', 'projects', 'companies'];
   var TYPE_PAGE = {
     materials: 's1', rights: 's2', experts: 's3', works: 's5', catalog: 's4',
     projects: 's6', companies: 's7', feedback: 'dashboard'
   };
-  var STAGE_PAGE_LABEL = {
+  var STAGE_PAGE_LABEL = FMI18n.lazy(function () { return {
     materials: t('collect.s1_collect'), rights: 'S2 DB', experts: t('feedback.s3_experts'), works: t('feedback.s5_refine_verify'),
     catalog: t('feedback.s4_catalog'), projects: 'S6 FDE', companies: t('company.s7_virtual_company'), feedback: t('feedback.s0_dashboard')
-  };
-  var DEFAULT_ERROR = t('feedback.could_not_save_your_input');
+  }; });
+  function defaultError() { return t('feedback.could_not_save_your_input'); }
 
   function el(tag, attrs, children) {
     var node = document.createElement(tag);
@@ -71,7 +71,7 @@
         if (!res.ok) {
           var err = new Error('request failed');
           var e = (data && data.error) || {};
-          err.userMessage = e.message || DEFAULT_ERROR;
+          err.userMessage = e.message || defaultError();
           err.fieldErrors = e.field_errors || {};
           err.status = res.status;
           throw err;
@@ -277,7 +277,7 @@
         }).catch(function (err) {
           save.disabled = false;
           save.textContent = t('experts.save');
-          msg.textContent = err.userMessage || DEFAULT_ERROR;
+          msg.textContent = err.userMessage || defaultError();
         });
       };
 

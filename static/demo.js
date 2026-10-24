@@ -12,10 +12,10 @@
 
   var KEYS = ['dashboard', 's1', 's2', 's3', 's4', 's5', 's6', 's7'];
   var ENTITY = { s1: 'sources', s3: 'experts', s4: 'catalogs', s5: 'works', s6: 'projects' };
-  var ENTITY_LABEL = { sources: t('collect.materials'), experts: t('app.experts'), catalogs: t('catalog.task_card'), works: t('demo.work'), projects: t('demo.project'), companies: t('app.virtual_company') };
+  var ENTITY_LABEL = FMI18n.lazy(function () { return { sources: t('collect.materials'), experts: t('app.experts'), catalogs: t('catalog.task_card'), works: t('demo.work'), projects: t('demo.project'), companies: t('app.virtual_company') }; });
   var ENTITY_STAGE = { sources: 's1', experts: 's3', catalogs: 's4', works: 's5', projects: 's6', companies: 's7' };
-  var STATE_LABEL = { pending_review: t('demo.awaiting_review'), inspected: t('company.inspected'), held: t('catalog.on_hold'), released: t('company.release') };
-  var CHECK_LABEL = { answer_present: t('demo.answer_present'), provenance_linked: t('demo.provenance_linked'), rights_ok: t('demo.rights_confirmed'), reviewer_ok: t('demo.reviewer_approved') };
+  var STATE_LABEL = FMI18n.lazy(function () { return { pending_review: t('demo.awaiting_review'), inspected: t('company.inspected'), held: t('catalog.on_hold'), released: t('company.release') }; });
+  var CHECK_LABEL = FMI18n.lazy(function () { return { answer_present: t('demo.answer_present'), provenance_linked: t('demo.provenance_linked'), rights_ok: t('demo.rights_confirmed'), reviewer_ok: t('demo.reviewer_approved') }; });
 
   var mode = 'local'; // local | operator | visitor | closed
   var visitorCsrf = null;
