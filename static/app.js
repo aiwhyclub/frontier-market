@@ -1,4 +1,4 @@
-/* Frontier Market shell: hash routing for S0 dashboard and S1~S7 stages.
+/* Frontier Lab Market shell: hash routing for S0 dashboard and S1~S7 stages.
  * Each screen renders a title and an empty state with one next action.
  * next: { href } opens another screen; { form } dispatches a
  * 'fm:open-form' event on document for the form layer (ui-forms.js). */
@@ -151,7 +151,7 @@
       window.FMScreens[key](document.getElementById('screen-root'));
     }
 
-    document.title = s.code + ' ' + s.title + ' · Frontier Market';
+    document.title = s.code + ' ' + s.title + ' · Frontier Lab Market';
     document.getElementById('breadcrumb-current').textContent = s.code + ' ' + s.nav;
 
     var links = document.querySelectorAll('#primary-nav a[data-screen]');

@@ -1,4 +1,4 @@
-"""Frontier Market Flask app factory."""
+"""Frontier Lab Market Flask app factory."""
 from contextlib import closing
 from pathlib import Path
 

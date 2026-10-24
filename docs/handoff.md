@@ -1,4 +1,4 @@
-# 새 창 인계 — Frontier Market
+# 새 창 인계 — Frontier Lab Market
 
 - 상태: 확정 (전체 문서·개발계획 인계 기준; Build 별도)
 - 변경 원칙: 이후 수정사항은 구축 과정에서 관련 문서에 함께 반영한다.

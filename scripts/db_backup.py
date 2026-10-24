@@ -31,7 +31,7 @@ DEFAULT_BACKUP_DIR = ROOT / "data" / "backups"
 
 
 def build_parser():
-    parser = argparse.ArgumentParser(description="Frontier Market SQLite 백업·복원")
+    parser = argparse.ArgumentParser(description="Frontier Lab Market SQLite 백업·복원")
     sub = parser.add_subparsers(dest="command", required=True)
 
     p_backup = sub.add_parser("backup", help="DB 백업 생성")

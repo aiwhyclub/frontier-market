@@ -19,7 +19,7 @@ class FirstScreenTest(unittest.TestCase):
         res = self.client.get("/")
         body = res.get_data(as_text=True)
         self.assertEqual(res.status_code, 200)
-        self.assertIn("Frontier Market", body)
+        self.assertIn("Frontier Lab Market", body)
         self.assertIn("합성 데이터 시연", body)
 
     def test_health_reports_db(self):
@@ -70,7 +70,7 @@ class AppShellTest(unittest.TestCase):
     def test_index_keeps_product_name_and_notice_visible_in_shell(self):
         body = self._page()
         self.assertIn('class="brand"', body)
-        self.assertIn("Frontier Market", body)
+        self.assertIn("Frontier Lab Market", body)
         self.assertIn('class="sidebar-note"', body)
         self.assertIn("합성 데이터 시연", body)
 

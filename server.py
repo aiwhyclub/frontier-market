@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Frontier Market local prototype (Flask)."""
+"""Frontier Lab Market local prototype (Flask)."""
 import argparse
 import os
 from pathlib import Path
@@ -22,12 +22,12 @@ def load_env(path):
 def main():
     root = Path(__file__).resolve().parent
     load_env(root / ".env")
-    parser = argparse.ArgumentParser(description="Frontier Market local prototype")
+    parser = argparse.ArgumentParser(description="Frontier Lab Market local prototype")
     parser.add_argument("--port", type=int, default=int(os.getenv("PORT", "8787")))
     parser.add_argument("--db", default=os.getenv("DB_PATH", str(root / "data" / "frontier-market.sqlite3")))
     args = parser.parse_args()
     app = create_app(root, args.db)
-    print(f"Frontier Market: http://127.0.0.1:{args.port}  (DB: {args.db})", flush=True)
+    print(f"Frontier Lab Market: http://127.0.0.1:{args.port}  (DB: {args.db})", flush=True)
     print("Local prototype • synthetic demo data • Ctrl+C to stop", flush=True)
     app.run(host="127.0.0.1", port=args.port, debug=False)
 
