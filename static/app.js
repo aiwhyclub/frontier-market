@@ -7,7 +7,7 @@
 
   var ORDER = ['dashboard', 's1', 's2', 's3', 's4', 's5', 's6', 's7'];
 
-  var SCREENS = {
+  var SCREENS = FMI18n.lazy(function () { return {
     dashboard: {
       code: 'S0',
       nav: t('app.dashboard'),
@@ -80,7 +80,7 @@
       emptyBody: t('app.approved_work_and_a_project'),
       next: { label: t('app.check_s5_refine_verify'), href: '#s5' }
     }
-  };
+  }; });
 
   function esc(text) {
     return String(text)
@@ -206,6 +206,16 @@
     }
     document.getElementById('main-content').addEventListener('click', onClick);
     window.addEventListener('hashchange', onHashChange);
+    // Language switch: re-render in place. An open form with typed input is left alone (its labels are
+    // refreshed by i18n.js data-i18n); the body catches up on the next navigation.
+    var pendingLang = false;
+    document.addEventListener('fm:langchange', function (e) {
+      setSidebarOpen(document.getElementById('sidebar').classList.contains('is-open'));
+      if (e.detail && e.detail.deferBody) { pendingLang = true; return; }
+      pendingLang = false;
+      render(currentKey());
+    });
+    window.addEventListener('hashchange', function () { pendingLang = false; });
     render(currentKey());
   }
 

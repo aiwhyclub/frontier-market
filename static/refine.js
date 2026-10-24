@@ -3,25 +3,25 @@
   'use strict';
   window.FMScreens = window.FMScreens || {};
 
-  var STATE_LABELS = {
+  var STATE_LABELS = FMI18n.lazy(function () { return {
     no_correction: t('refine.no_corrected_version'),
     pending: t('demo.awaiting_review'),
     approved: t('experts.approved'),
     rejected: t('experts.rejected'),
     review_required: t('refine.re_review_needed')
-  };
+  }; });
   var SECTION_KEYS = ['context', 'observation', 'novice_errors', 'judgement', 'outcome_check', 'criteria', 'questions'];
-  var SECTION_LABELS = {
+  var SECTION_LABELS = FMI18n.lazy(function () { return {
     context: t('refine.context'), observation: t('refine.observed_facts'), novice_errors: t('refine.novice_errors'), judgement: t('refine.judgement_exceptions'),
     outcome_check: t('refine.result_check'), criteria: t('refine.evaluation_criteria'), questions: t('refine.follow_up_questions')
-  };
-  var VIEW_TABS = [
+  }; });
+  var VIEW_TABS = FMI18n.lazy(function () { return [
     { key: 'original', label: t('collect.original_text') },
     { key: 'draft', label: t('catalog.draft') },
     { key: 'ai_draft', label: t('refine.ai_draft') },
     { key: 'corrected', label: t('collect.corrected_version') },
     { key: 'evidence', label: t('catalog.evidence') }
-  ];
+  ]; });
 
   // Module-level memory of the selected work and tab so switching tabs or re-rendering keeps the choice.
   var memo = { workId: null, tab: 'original', list: null };

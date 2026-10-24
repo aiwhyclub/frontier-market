@@ -11,19 +11,20 @@
 
   window.FMScreens = window.FMScreens || {};
 
-  var AXES = [
+  var AXES = FMI18n.lazy(function () { return [
     { key: 'apprenticeship', label: t('experts.apprenticeship_experience') },
     { key: 'signals', label: t('experts.observation_cues') },
     { key: 'judgment', label: t('experts.judgement_exceptions') },
     { key: 'evidence', label: t('experts.result_evidence') }
-  ];
-  var DECISION_LABEL = { candidate: t('experts.applied_candidate'), approved: t('experts.approved'), supplement: t('experts.needs_supplement'), rejected: t('experts.rejected') };
+  ]; });
+  var DECISION_LABEL = FMI18n.lazy(function () { return { candidate: t('experts.applied_candidate'), approved: t('experts.approved'), supplement: t('experts.needs_supplement'), rejected: t('experts.rejected') }; });
   // The decision field accepts the English codes, the current-language labels and the original Korean words.
-  var DECISION_KEY = { approved: 'approved', supplement: 'supplement', rejected: 'rejected', '승인': 'approved', '보완': 'supplement', '반려': 'rejected' };
-  DECISION_KEY[t('experts.approved')] = 'approved';
-  DECISION_KEY[t('experts.needs_supplement')] = 'supplement';
-  DECISION_KEY[t('experts.rejected')] = 'rejected';
-  var SYNTH = t('catalog.synthetic');
+  var DECISION_KEY = FMI18n.lazy(function () { var m = { approved: 'approved', supplement: 'supplement', rejected: 'rejected', '승인': 'approved', '보완': 'supplement', '반려': 'rejected' };
+    m[t('experts.approved')] = 'approved';
+    m[t('experts.needs_supplement')] = 'supplement';
+    m[t('experts.rejected')] = 'rejected';
+    return m;
+  });
 
   function el(tag, attrs, children) {
     var node = document.createElement(tag);
@@ -36,7 +37,7 @@
     return node;
   }
 
-  function badge() { return el('span', { className: 's2-badge', text: SYNTH }); }
+  function badge() { return el('span', { className: 's2-badge', text: t('catalog.synthetic') }); }
 
   function api(method, url, body) {
     var opts = { method: method, headers: {} };

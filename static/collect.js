@@ -3,7 +3,7 @@
   'use strict';
   window.FMScreens = window.FMScreens || {};
 
-  var REASONS = {
+  var REASONS = FMI18n.lazy(function () { return {
     invalid_url: t('collect.the_address_format_is_not'),
     unsupported_scheme: t('collect.only_http_or_https_addresses'),
     blocked_port: t('collect.only_public_addresses_on_port'),
@@ -18,7 +18,7 @@
     network_error: t('collect.could_not_connect'),
     empty: t('collect.there_is_no_readable_text'),
     unreadable: t('collect.the_character_encoding_could_not')
-  };
+  }; });
 
   function el(tag, attrs, children) {
     var node = document.createElement(tag);
