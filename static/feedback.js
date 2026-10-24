@@ -9,15 +9,15 @@
   window.FMScreens = window.FMScreens || {};
 
   var API = '/api/feedback';
-  var KIND_LABELS = { sample_review: '샘플 검토', pilot: '유료 파일럿 조건', topic: '필요 주제' };
+  var KIND_LABELS = { sample_review: t('feedback.sample_review'), pilot: t('feedback.paid_pilot_terms'), topic: t('feedback.topic_needed') };
   var KIND_HINT = {
-    sample_review: '샘플 검토 의견을 남깁니다. 저장은 메시지 발송이 아닙니다.',
-    pilot: '유료 파일럿 조건에 대한 의견을 남깁니다. 실제 주문·결제가 아닙니다.',
-    topic: '필요한 주제를 남깁니다. 카탈로그가 없어도 저장할 수 있습니다.'
+    sample_review: t('feedback.leave_sample_review_feedback_saving'),
+    pilot: t('feedback.leave_feedback_on_paid_pilot'),
+    topic: t('feedback.leave_a_topic_you_need')
   };
   var TYPE_LABELS = {
-    materials: '자료', works: '작업(원시·정제)', catalog: '카탈로그',
-    projects: 'FDE 프로젝트', companies: '가상회사'
+    materials: t('collect.materials'), works: t('feedback.work_raw_refined'), catalog: t('app.catalog'),
+    projects: t('feedback.fde_project'), companies: t('app.virtual_company')
   };
   var LINK_TYPES = ['materials', 'works', 'catalog', 'projects', 'companies'];
   var TYPE_PAGE = {
@@ -25,10 +25,10 @@
     projects: 's6', companies: 's7', feedback: 'dashboard'
   };
   var STAGE_PAGE_LABEL = {
-    materials: 'S1 자료 수집', rights: 'S2 DB', experts: 'S3 전문가', works: 'S5 정제·검증',
-    catalog: 'S4 카탈로그', projects: 'S6 FDE', companies: 'S7 가상회사', feedback: 'S0 대시보드'
+    materials: t('collect.s1_collect'), rights: 'S2 DB', experts: t('feedback.s3_experts'), works: t('feedback.s5_refine_verify'),
+    catalog: t('feedback.s4_catalog'), projects: 'S6 FDE', companies: t('company.s7_virtual_company'), feedback: t('feedback.s0_dashboard')
   };
-  var DEFAULT_ERROR = '저장하지 못했습니다. 입력은 그대로 두었으니 다시 시도해 주세요.';
+  var DEFAULT_ERROR = t('feedback.could_not_save_your_input');
 
   function el(tag, attrs, children) {
     var node = document.createElement(tag);
@@ -47,7 +47,7 @@
   }
 
   function synthBadge(item) {
-    return item && item.synthetic ? el('span', { className: 'fb-badge', text: '합성' }) : null;
+    return item && item.synthetic ? el('span', { className: 'fb-badge', text: t('catalog.synthetic') }) : null;
   }
 
   function setState(container, kind, text) {
@@ -80,7 +80,7 @@
       });
     }, function () {
       var err = new Error('network');
-      err.userMessage = '서버에 연결하지 못했습니다. 입력은 그대로 두었으니 다시 시도해 주세요.';
+      err.userMessage = t('collect.could_not_reach_the_server');
       throw err;
     });
   }
@@ -106,10 +106,10 @@
       });
     });
     var wrap = el('div', { className: 'fb-chooser fm-form' }, [
-      el('h2', { id: 'fb-chooser-title', className: 'fm-title', text: '구매자 의견 유형 선택' }),
-      el('p', { className: 'fm-fields', text: '세 유형 중 하나를 고르면 입력 양식이 열립니다.' })
+      el('h2', { id: 'fb-chooser-title', className: 'fm-title', text: t('feedback.choose_buyer_feedback_type') }),
+      el('p', { className: 'fm-fields', text: t('feedback.pick_one_of_the_three') })
     ].concat(buttons.map(function (b) { return el('div', { className: 'fb-kind-row' }, [b]); })));
-    var close = el('button', { type: 'button', className: 'fm-btn', text: '닫기' });
+    var close = el('button', { type: 'button', className: 'fm-btn', text: t('feedback.close') });
     wrap.appendChild(el('div', { className: 'fm-actions' }, [el('div', { className: 'fm-buttons' }, [close])]));
     dialog.appendChild(wrap);
     // remove only: 다른 양식을 바로 여는 경우에는 호출 위치로 포커스를 돌리지 않는다.
@@ -144,12 +144,12 @@
     if (!window.FMForms) return;
     window.FMForms.openForm({
       opener: opener || document.activeElement,
-      title: KIND_LABELS[kind] + ' 의견 남기기',
-      submitLabel: '의견 저장',
+      title: KIND_LABELS[kind] + ' ' + t('feedback.feedback'),
+      submitLabel: t('feedback.save_feedback'),
       fields: [
-        { name: 'title', label: kind === 'topic' ? '주제 이름' : '대상 이름', type: 'text', required: true },
-        { name: 'note', label: '의견', type: 'textarea', required: true },
-        { name: 'target_note', label: '대상·작성자 메모', type: 'textarea', required: false }
+        { name: 'title', label: kind === 'topic' ? t('feedback.topic_name') : t('feedback.target_name'), type: 'text', required: true },
+        { name: 'note', label: t('feedback.feedback_2'), type: 'textarea', required: true },
+        { name: 'target_note', label: t('feedback.notes_on_target_and_author'), type: 'textarea', required: false }
       ],
       onSubmit: function (values) {
         return api('', {
@@ -193,7 +193,7 @@
   }
 
   function renderDetail(container, feedbackId, onChange) {
-    setState(container, 'loading', '의견을 불러오는 중입니다.');
+    setState(container, 'loading', t('feedback.loading_feedback'));
     api('/' + encodeURIComponent(feedbackId)).then(function (data) {
       var item = data.item;
       var links = data.links || [];
@@ -209,26 +209,26 @@
       var note = textArea(item.note || item.body, 2000);
       var targetNote = textArea(item.target_note, 500);
       var status = textInput(item.status || '', 80);
-      status.placeholder = '예: 샘플 검토 요청 확인 (비워 두면 미지정)';
+      status.placeholder = t('feedback.e_g_confirm_sample_review');
 
       var linkSelects = {};
       var linkRow = el('div', { className: 'fb-links' });
       LINK_TYPES.forEach(function (type) {
         var current = links.filter(function (l) { return l.type === type; })[0];
         var select = el('select', { className: 'fm-input' });
-        select.appendChild(el('option', { value: '', text: '연결 없음' }));
+        select.appendChild(el('option', { value: '', text: t('feedback.no_link') }));
         if (current) {
           select.appendChild(el('option', { value: current.id, text: current.title || current.id }));
           select.value = current.id;
         }
         linkSelects[type] = select;
         var goBtn = current ? el('button', {
-          type: 'button', className: 'fm-btn fb-go', text: '이동',
-          'aria-label': (TYPE_LABELS[type] + ' 기록으로 이동'),
+          type: 'button', className: 'fm-btn fb-go', text: t('feedback.go'),
+          'aria-label': t('feedback.go_to_record', { type: TYPE_LABELS[type] }),
           onclick: function () { location.hash = '#' + (TYPE_PAGE[type] || 'dashboard'); }
         }) : null;
-        linkRow.appendChild(field(TYPE_LABELS[type] + ' 보완 대상', select,
-          current ? null : '연결하려면 목록에서 기록을 고르세요.'));
+        linkRow.appendChild(field(TYPE_LABELS[type] + ' ' + t('feedback.supplement_target'), select,
+          current ? null : t('feedback.to_link_one_choose_a')));
         if (goBtn) linkRow.appendChild(goBtn);
         // Load the record choices for this type (only ones not yet shown).
         recordApi(type).then(function (items) {
@@ -237,24 +237,24 @@
             select.appendChild(el('option', { value: rec.id, text: (rec.title || rec.id) + ' · ' + rec.id }));
           });
         }).catch(function () {
-          select.appendChild(el('option', { value: '', text: '목록을 불러오지 못했습니다' }));
+          select.appendChild(el('option', { value: '', text: t('feedback.could_not_load_the_list') }));
         });
       });
 
-      var save = el('button', { type: 'button', className: 'fm-btn fm-btn-primary', text: '저장' });
+      var save = el('button', { type: 'button', className: 'fm-btn fm-btn-primary', text: t('experts.save') });
       var trailBox = el('div', { className: 'fb-trail' });
-      var trailBtn = el('button', { type: 'button', className: 'fm-btn', text: '관련 기록 따라가기' });
+      var trailBtn = el('button', { type: 'button', className: 'fm-btn', text: t('feedback.follow_related_records') });
       trailBtn.onclick = function () { showTrail(trailBox, feedbackId); };
 
       save.onclick = function () {
         msg.textContent = '';
         var statusValue = status.value.trim();
         if (statusValue.length > 80) {
-          msg.textContent = '처리 상태는 80자 이하로 입력해 주세요.';
+          msg.textContent = t('feedback.enter_the_processing_status_in');
           return;
         }
         if (!title.value.trim() || !note.value.trim()) {
-          msg.textContent = '주제 이름과 의견은 비워 둘 수 없습니다.';
+          msg.textContent = t('feedback.topic_name_and_feedback_cannot');
           return;
         }
         var links = [];
@@ -262,7 +262,7 @@
           if (linkSelects[type].value) links.push({ type: type, id: linkSelects[type].value });
         });
         save.disabled = true;
-        save.textContent = '저장 중';
+        save.textContent = t('feedback.saving');
         api('/' + encodeURIComponent(feedbackId), {
           method: 'PATCH',
           body: {
@@ -276,7 +276,7 @@
           if (onChange) onChange();
         }).catch(function (err) {
           save.disabled = false;
-          save.textContent = '저장';
+          save.textContent = t('experts.save');
           msg.textContent = err.userMessage || DEFAULT_ERROR;
         });
       };
@@ -287,18 +287,18 @@
         el('span', { className: 'fb-kind', text: KIND_LABELS[item.kind] || '' })
       ]));
       container.appendChild(el('div', { className: 'fb-form' }, [
-        field('유형', kindSelect),
-        field('주제·대상 이름', title),
-        field('의견', note),
-        field('대상·작성자 메모', targetNote),
-        field('처리 상태', status, '비워 두면 미지정입니다. 자동으로 다음 단계로 넘어가지 않습니다.'),
+        field(t('collect.type'), kindSelect),
+        field(t('feedback.topic_target_name'), title),
+        field(t('feedback.feedback_2'), note),
+        field(t('feedback.notes_on_target_and_author'), targetNote),
+        field(t('feedback.processing_status'), status, t('feedback.blank_means_unspecified_it_never')),
         linkRow,
         msg,
         el('div', { className: 'fb-actions' }, [save, trailBtn])
       ]));
       container.appendChild(trailBox);
     }).catch(function (err) {
-      setState(container, 'error', err.userMessage || '의견을 불러오지 못했습니다.');
+      setState(container, 'error', err.userMessage || t('feedback.could_not_load_the_feedback'));
     });
   }
 
@@ -308,7 +308,7 @@
       el('span', { className: 'fb-node-label', text: label }),
       synthBadge(node),
       el('button', {
-        type: 'button', className: 'fm-btn fb-go', text: (STAGE_PAGE_LABEL[node.type] || '이동') + ' 열기',
+        type: 'button', className: 'fm-btn fb-go', text: t('feedback.open_stage', { stage: STAGE_PAGE_LABEL[node.type] || t('feedback.go') }),
         onclick: function () { location.hash = '#' + (TYPE_PAGE[node.type] || 'dashboard'); }
       })
     ]);
@@ -316,20 +316,20 @@
 
   function showTrail(box, feedbackId) {
     box.textContent = '';
-    box.appendChild(el('p', { className: 'fb-state', text: '관련 기록을 찾는 중입니다.', role: 'status' }));
+    box.appendChild(el('p', { className: 'fb-state', text: t('feedback.finding_related_records'), role: 'status' }));
     api('/trail/feedback/' + encodeURIComponent(feedbackId)).then(function (data) {
       box.textContent = '';
-      box.appendChild(el('h4', { text: '보완 대상 (이 의견이 가리키는 기록)' }));
+      box.appendChild(el('h4', { text: t('feedback.supplement_target_the_record_this') }));
       box.appendChild(data.outgoing.length
         ? el('ul', { className: 'fb-list' }, data.outgoing.map(nodeLink))
-        : el('p', { className: 'fb-state', text: '연결된 보완 대상이 없습니다.' }));
-      box.appendChild(el('h4', { text: '이 의견을 가리키는 기록' }));
+        : el('p', { className: 'fb-state', text: t('feedback.no_linked_supplement_target') }));
+      box.appendChild(el('h4', { text: t('feedback.records_pointing_to_this_feedback') }));
       box.appendChild(data.incoming.length
         ? el('ul', { className: 'fb-list' }, data.incoming.map(nodeLink))
-        : el('p', { className: 'fb-state', text: '없습니다.' }));
+        : el('p', { className: 'fb-state', text: t('feedback.none') }));
     }).catch(function (err) {
       box.textContent = '';
-      box.appendChild(el('p', { className: 'fb-state fb-state-error', text: err.userMessage || '불러오지 못했습니다.', role: 'alert' }));
+      box.appendChild(el('p', { className: 'fb-state fb-state-error', text: err.userMessage || t('feedback.could_not_load_it'), role: 'alert' }));
     });
   }
 
@@ -347,14 +347,14 @@
   }
 
   function recordRow(node) {
-    var meta = [TYPE_LABELS[node.type] || node.type, node.status ? '처리: ' + node.status : null]
+    var meta = [TYPE_LABELS[node.type] || node.type, node.status ? t('feedback.status') + ' ' + node.status : null]
       .filter(Boolean).join(' · ');
     return el('li', null, [
       el('span', { className: 'fb-node-label', text: node.title || node.id }),
       synthBadge(node),
       el('span', { className: 'fb-meta', text: ' ' + meta }),
       el('button', {
-        type: 'button', className: 'fm-btn fb-go', text: '열기',
+        type: 'button', className: 'fm-btn fb-go', text: t('feedback.open'),
         onclick: function () { location.hash = '#' + (TYPE_PAGE[node.type] || 'dashboard'); }
       })
     ]);
@@ -363,27 +363,27 @@
   function renderDashboard(container, data, reload) {
     container.textContent = '';
     container.appendChild(el('header', { className: 'fb-page-head' }, [
-      el('h1', { text: 'S0 대시보드' }),
-      el('p', { text: '저장된 기록만 집계합니다. 합성 시연 자료이며 실제 모집·계약·주문이 아닙니다.' })
+      el('h1', { text: t('feedback.s0_dashboard') }),
+      el('p', { text: t('feedback.only_saved_records_are_counted') })
     ]));
 
-    var stageSection = sectionEl('단계별 저장 현황', 'fb-stages-title');
+    var stageSection = sectionEl(t('feedback.saved_records_by_stage'), 'fb-stages-title');
     stageSection.appendChild(el('ul', { className: 'fb-stage-grid' }, data.stages.map(function (s) {
       return el('li', { className: 'fb-stage-card' }, [
         el('a', { href: '#' + s.page }, [
           el('span', { className: 'fb-stage-code', text: s.stage }),
           el('span', { className: 'fb-stage-name', text: s.label }),
-          el('strong', { className: 'fb-stage-count', text: String(s.count) + '건' })
+          el('strong', { className: 'fb-stage-count', text: String(s.count) + t('collect.items') })
         ])
       ]);
     })));
     container.appendChild(stageSection);
 
-    var feedbackSection = sectionEl('구매자 의견 (샘플 검토 · 유료 파일럿 · 필요 주제)', 'fb-feedback-title');
+    var feedbackSection = sectionEl(t('feedback.buyer_feedback_sample_review_paid'), 'fb-feedback-title');
     var actions = el('div', { className: 'fb-actions' });
     Object.keys(KIND_LABELS).forEach(function (kind) {
       actions.appendChild(el('button', {
-        type: 'button', className: 'fm-btn fm-btn-primary', text: KIND_LABELS[kind] + ' 남기기',
+        type: 'button', className: 'fm-btn fm-btn-primary', text: t('feedback.add_kind', { kind: KIND_LABELS[kind] }),
         title: KIND_HINT[kind],
         onclick: function () { open(kind); }
       }));
@@ -397,7 +397,7 @@
       current = kind;
       tabs.textContent = '';
       ['', 'sample_review', 'pilot', 'topic'].forEach(function (k) {
-        var label = k ? KIND_LABELS[k] : '전체';
+        var label = k ? KIND_LABELS[k] : t('feedback.all');
         var btn = el('button', {
           type: 'button', className: 'fm-btn fb-tab', role: 'tab',
           'aria-selected': String(current === k), text: label
@@ -410,9 +410,9 @@
     feedbackSection.appendChild(tabs);
     feedbackSection.appendChild(listBox);
     feedbackSection.appendChild(detailBox);
-    feedbackSection.appendChild(el('h3', { text: '의견별 다음 행동' }));
+    feedbackSection.appendChild(el('h3', { text: t('feedback.next_action_per_feedback') }));
     feedbackSection.appendChild(listOrEmpty(data.feedback,
-      '아직 저장된 의견이 없습니다. 위 버튼으로 첫 의견을 남겨 보세요.',
+      t('feedback.no_feedback_saved_yet_use'),
       function (f) {
         return el('li', null, [
           el('span', { className: 'fb-node-label', text: f.title }),
@@ -420,7 +420,7 @@
           synthBadge(f),
           el('span', { className: 'fb-meta', text: ' ' + f.next_action }),
           el('button', {
-            type: 'button', className: 'fm-btn fb-go', text: '상세',
+            type: 'button', className: 'fm-btn fb-go', text: t('feedback.details'),
             onclick: function () { detailBox.textContent = ''; renderDetail(detailBox, f.id, reload); detailBox.scrollIntoView && detailBox.scrollIntoView({ block: 'nearest' }); }
           })
         ]);
@@ -428,16 +428,16 @@
     container.appendChild(feedbackSection);
     showKind('');
 
-    var pendingSection = sectionEl('검토 대기 (' + data.pending_total + '건)', 'fb-pending-title');
-    pendingSection.appendChild(listOrEmpty(data.pending_reviews, '검토 대기 상태(초안·검토 대기)의 기록이 없습니다.', recordRow));
+    var pendingSection = sectionEl(t('feedback.awaiting_review') + data.pending_total + t('feedback.text'), 'fb-pending-title');
+    pendingSection.appendChild(listOrEmpty(data.pending_reviews, t('feedback.no_records_in_the_awaiting'), recordRow));
     container.appendChild(pendingSection);
 
-    var holdSection = sectionEl('보류 (' + data.hold_total + '건)', 'fb-hold-title');
-    holdSection.appendChild(listOrEmpty(data.holds, '보류 상태의 기록이 없습니다.', recordRow));
+    var holdSection = sectionEl(t('feedback.on_hold') + data.hold_total + t('feedback.text'), 'fb-hold-title');
+    holdSection.appendChild(listOrEmpty(data.holds, t('feedback.no_records_on_hold'), recordRow));
     container.appendChild(holdSection);
 
-    var activitySection = sectionEl('최근 활동', 'fb-activity-title');
-    activitySection.appendChild(listOrEmpty(data.recent_activity, '저장된 활동이 없습니다.', function (n) {
+    var activitySection = sectionEl(t('feedback.recent_activity'), 'fb-activity-title');
+    activitySection.appendChild(listOrEmpty(data.recent_activity, t('feedback.no_saved_activity'), function (n) {
       return el('li', null, [
         el('span', { className: 'fb-node-label', text: (n.title || n.id) }),
         synthBadge(n),
@@ -448,11 +448,11 @@
   }
 
   function loadList(listBox, detailBox, kind, reload) {
-    setState(listBox, 'loading', '의견 목록을 불러오는 중입니다.');
+    setState(listBox, 'loading', t('feedback.loading_the_feedback_list'));
     api(kind ? '?kind=' + encodeURIComponent(kind) : '').then(function (data) {
       listBox.textContent = '';
       if (!data.items.length) {
-        listBox.appendChild(el('p', { className: 'fb-state', text: '이 유형의 의견이 아직 없습니다.' }));
+        listBox.appendChild(el('p', { className: 'fb-state', text: t('feedback.no_feedback_of_this_type') }));
         return;
       }
       listBox.appendChild(el('ul', { className: 'fb-list' }, data.items.map(function (item) {
@@ -460,27 +460,27 @@
           el('span', { className: 'fb-node-label', text: item.title }),
           el('span', { className: 'fb-kind', text: KIND_LABELS[item.kind] || '' }),
           synthBadge(item),
-          el('span', { className: 'fb-meta', text: ' 처리: ' + (item.status || '미지정') + ' · 연결 ' + item.link_count + '건' }),
+          el('span', { className: 'fb-meta', text: ' ' + t('feedback.status') + ' ' + (item.status || t('feedback.unspecified')) + ' ' + t('feedback.links') + ' ' + item.link_count + t('collect.items') }),
           el('button', {
-            type: 'button', className: 'fm-btn fb-go', text: '상세 보기',
+            type: 'button', className: 'fm-btn fb-go', text: t('demo.view_details'),
             onclick: function () { detailBox.textContent = ''; renderDetail(detailBox, item.id, reload); }
           })
         ]);
       })));
     }).catch(function (err) {
-      setState(listBox, 'error', err.userMessage || '목록을 불러오지 못했습니다.');
+      setState(listBox, 'error', err.userMessage || t('catalog.could_not_load_the_list'));
     });
   }
 
   function loadDashboard(container) {
-    setState(container, 'loading', '대시보드를 불러오는 중입니다.');
+    setState(container, 'loading', t('feedback.loading_the_dashboard'));
     api('/dashboard').then(function (data) {
       renderDashboard(container, data, function () { loadDashboard(container); });
     }).catch(function (err) {
       container.textContent = '';
-      container.appendChild(el('p', { className: 'fb-state fb-state-error', role: 'alert', text: err.userMessage || '대시보드를 불러오지 못했습니다.' }));
+      container.appendChild(el('p', { className: 'fb-state fb-state-error', role: 'alert', text: err.userMessage || t('feedback.could_not_load_the_dashboard') }));
       container.appendChild(el('button', {
-        type: 'button', className: 'fm-btn', text: '다시 시도',
+        type: 'button', className: 'fm-btn', text: t('catalog.try_again'),
         onclick: function () { loadDashboard(container); }
       }));
     });

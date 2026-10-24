@@ -16,6 +16,7 @@ class _FdeBase(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.app = create_app(ROOT, Path(self.tmp.name) / "records.sqlite3")
         self.client = self.app.test_client()
+        self.client.environ_base["HTTP_X_FM_LANG"] = "ko"  # these tests assert the Korean message text
 
     def tearDown(self):
         self.tmp.cleanup()

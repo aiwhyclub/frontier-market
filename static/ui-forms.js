@@ -26,16 +26,16 @@
     'textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
   var MSG = {
-    saving: '저장 중…',
-    saved: '저장했어요. 입력한 내용이 반영됐어요.',
-    failed: '저장하지 못했어요. 입력한 내용은 그대로 있어요. 같은 내용으로 다시 저장할 수 있어요.',
-    closeBlocked: '저장이 끝난 뒤 닫을 수 있어요.',
-    submit: '저장',
-    cancel: '취소',
-    close: '닫기',
-    required: function (label) { return label + '을(를) 입력해 주세요.'; },
-    url: function (label) { return label + '은(는) http 또는 https 주소로 입력해 주세요.'; },
-    number: function (label) { return label + '은(는) 숫자로 입력해 주세요.'; }
+    saving: t('forms.saving'),
+    saved: t('forms.saved_your_input_has_been'),
+    failed: t('forms.could_not_save_your_input'),
+    closeBlocked: t('forms.you_can_close_it_after'),
+    submit: t('experts.save'),
+    cancel: t('demo.cancel'),
+    close: t('feedback.close'),
+    required: function (label) { return t('forms.please_enter_label', { label: label }); },
+    url: function (label) { return t('forms.label_must_be_an_http_or', { label: label }); },
+    number: function (label) { return t('forms.label_must_be_a_number', { label: label }); }
   };
 
   var seq = 0;
@@ -162,7 +162,7 @@
 
   function openForm(options) {
     options = options || {};
-    var title = String(options.title || '입력');
+    var title = String(options.title || t('forms.input'));
     var fields = Array.isArray(options.fields) ? options.fields : [];
     var onSubmit = typeof options.onSubmit === 'function' ? options.onSubmit : function () {};
     var submitLabel = String(options.submitLabel || MSG.submit);
@@ -194,7 +194,7 @@
           el('span', { className: 'fm-label-text', text: label }),
           el('span', {
             className: field.required ? 'fm-badge fm-badge-required' : 'fm-badge',
-            text: field.required ? '필수' : '선택'
+            text: field.required ? t('forms.required') : t('forms.optional')
           })
         ]);
         var input = type === 'textarea'
@@ -344,11 +344,11 @@
     var titleId = uid('title');
     return new Promise(function (resolve) {
       var dialog = el('dialog', { className: 'fm-dialog fm-detail', 'aria-labelledby': titleId });
-      var heading = el('h2', { id: titleId, className: 'fm-title', text: String(options.title || '상세') });
+      var heading = el('h2', { id: titleId, className: 'fm-title', text: String(options.title || t('feedback.details')) });
       var list = el('dl', { className: 'fm-rows' });
       (Array.isArray(options.rows) ? options.rows : []).forEach(function (row) {
         var value = row.value;
-        var text = value === null || value === undefined || value === '' ? '없음' : String(value);
+        var text = value === null || value === undefined || value === '' ? t('collect.none') : String(value);
         list.appendChild(el('dt', { className: 'fm-row-label', text: String(row.label || '') }));
         list.appendChild(el('dd', { className: 'fm-row-value', text: text }));
       });
@@ -379,7 +379,7 @@
       window.setTimeout(function () {
         var failed = Object.keys(values).some(function (key) { return values[key] === 'fail'; });
         if (failed) {
-          reject({ userMessage: '데모 저장이 실패했어요. 입력한 내용은 그대로 있어요.' });
+          reject({ userMessage: t('forms.demo_save_failed_your_input') });
         } else {
           resolve();
         }
@@ -397,10 +397,10 @@
       var label = opener && opener !== document.body && opener.textContent ? opener.textContent.trim() : '';
       FMForms.openForm({
         opener: opener,
-        title: label || '등록',
+        title: label || t('experts.register'),
         fields: [
-          { name: 'title', label: '제목', type: 'text', required: true },
-          { name: 'note', label: '메모', type: 'textarea', required: false }
+          { name: 'title', label: t('collect.title'), type: 'text', required: true },
+          { name: 'note', label: t('fde.notes'), type: 'textarea', required: false }
         ],
         onSubmit: demoSubmit
       });
@@ -410,11 +410,11 @@
       button.setAttribute('data-fm-wired', '1');
       button.addEventListener('click', function () {
         FMForms.openForm({
-          title: '데모 등록',
+          title: t('forms.demo_registration'),
           fields: [
-            { name: 'title', label: '제목', type: 'text', required: true },
-            { name: 'link', label: '출처 주소', type: 'url', required: false },
-            { name: 'note', label: '메모', type: 'textarea', required: false }
+            { name: 'title', label: t('collect.title'), type: 'text', required: true },
+            { name: 'link', label: t('collect.source_url'), type: 'url', required: false },
+            { name: 'note', label: t('fde.notes'), type: 'textarea', required: false }
           ],
           onSubmit: demoSubmit
         });

@@ -14,7 +14,7 @@ from contextlib import closing
 
 from flask import Blueprint, current_app, jsonify, request
 
-from backend import ai, db
+from backend import ai, db, i18n
 
 bp = Blueprint("experts", __name__, url_prefix="/api/experts")
 
@@ -247,7 +247,7 @@ def edit_profile(expert_id):
                     changes["title"] = texts["name"]
                 if changed_trigger and item["status"] in ("approved", "supplement", "rejected", "candidate"):
                     new_fields["reevaluation_required"] = True
-                    new_fields["reevaluation_reason"] = "경험·도제 맥락·제공 범위가 바뀌었습니다: " + ", ".join(changed_trigger)
+                    new_fields["reevaluation_reason"] = i18n.tr("경험·도제 맥락·제공 범위가 바뀌었습니다: {}", ", ".join(changed_trigger))
                 db.update_record(conn, "experts", expert_id, expected_version=version, changes=changes)
                 item = db.get_record(conn, "experts", expert_id)
                 payload = _detail_payload(conn, item)

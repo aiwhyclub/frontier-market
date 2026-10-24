@@ -6,7 +6,7 @@ import os
 
 from flask import Flask, jsonify, send_from_directory
 
-from backend import db, demo, records_api, security, seed
+from backend import db, demo, i18n, records_api, security, seed
 from backend.features import catalog, collect, company, experts, fde, feedback, refine, rights
 
 FEATURES = (collect, experts, catalog, rights, refine, fde, company, feedback)
@@ -36,6 +36,7 @@ def create_app(root, db_path, *, env=None, clock=None):
     app.config["FM_CLOCK"] = clock or security.utc_now
     app.before_request(security.gate)
     app.after_request(security.add_headers)
+    i18n.install(app)
     app.register_blueprint(records_api.bp)
     for feature in FEATURES:
         app.register_blueprint(feature.bp)

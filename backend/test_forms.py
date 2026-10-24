@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 
 from backend.app import create_app
+from backend.i18n_testutil import tk
 
 ROOT = Path(__file__).resolve().parent.parent
 JS_PATH = ROOT / "static" / "ui-forms.js"
@@ -65,7 +66,7 @@ class FormsAssetTest(unittest.TestCase):
         self.assertIn("aria-required", self.js)
 
     def test_saving_state_disables_submit_and_shows_message(self):
-        self.assertIn("저장 중…", self.js)
+        self.assertIn(tk("저장 중…"), self.js)
         self.assertIn("submit.disabled = on", self.js)
         self.assertIn("if (saving) return;", self.js)
 
@@ -84,7 +85,7 @@ class FormsAssetTest(unittest.TestCase):
     def test_success_toast_is_polite_status(self):
         self.assertIn("'aria-live': 'polite'", self.js)
         self.assertIn("role: 'status'", self.js)
-        self.assertIn("저장했어요", self.js)
+        self.assertIn(tk("저장했어요. 입력한 내용이 반영됐어요."), self.js)
 
     def test_no_browser_storage_is_used(self):
         self.assertNotIn("localStorage", self.js_code)

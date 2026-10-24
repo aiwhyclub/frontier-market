@@ -4,23 +4,23 @@
   window.FMScreens = window.FMScreens || {};
 
   var STATE_LABELS = {
-    no_correction: '교정본 없음',
-    pending: '검토 대기',
-    approved: '승인',
-    rejected: '반려',
-    review_required: '재검토 필요'
+    no_correction: t('refine.no_corrected_version'),
+    pending: t('demo.awaiting_review'),
+    approved: t('experts.approved'),
+    rejected: t('experts.rejected'),
+    review_required: t('refine.re_review_needed')
   };
   var SECTION_KEYS = ['context', 'observation', 'novice_errors', 'judgement', 'outcome_check', 'criteria', 'questions'];
   var SECTION_LABELS = {
-    context: '맥락', observation: '관찰 사실', novice_errors: '초보자 오류', judgement: '판단·예외',
-    outcome_check: '결과 확인', criteria: '평가 기준', questions: '추가 질문'
+    context: t('refine.context'), observation: t('refine.observed_facts'), novice_errors: t('refine.novice_errors'), judgement: t('refine.judgement_exceptions'),
+    outcome_check: t('refine.result_check'), criteria: t('refine.evaluation_criteria'), questions: t('refine.follow_up_questions')
   };
   var VIEW_TABS = [
-    { key: 'original', label: '원문' },
-    { key: 'draft', label: '초안' },
-    { key: 'ai_draft', label: 'AI 초안' },
-    { key: 'corrected', label: '교정본' },
-    { key: 'evidence', label: '근거' }
+    { key: 'original', label: t('collect.original_text') },
+    { key: 'draft', label: t('catalog.draft') },
+    { key: 'ai_draft', label: t('refine.ai_draft') },
+    { key: 'corrected', label: t('collect.corrected_version') },
+    { key: 'evidence', label: t('catalog.evidence') }
   ];
 
   // Module-level memory of the selected work and tab so switching tabs or re-rendering keeps the choice.
@@ -43,7 +43,7 @@
   }
 
   function badge(synthetic) {
-    return synthetic ? el('span', { className: 'fm-badge', text: '합성' }) : null;
+    return synthetic ? el('span', { className: 'fm-badge', text: t('catalog.synthetic') }) : null;
   }
 
   function api(method, url, body) {
@@ -52,7 +52,7 @@
     return fetch(url, opts).then(function (r) {
       return r.json().catch(function () { return null; }).then(function (data) {
         if (!r.ok) {
-          var msg = (data && data.error && data.error.message) || '요청을 처리하지 못했어요. 입력한 내용은 그대로 있어요.';
+          var msg = (data && data.error && data.error.message) || t('refine.the_request_could_not_be');
           var err = new Error(msg);
           err.userMessage = msg;
           err.status = r.status;
@@ -80,15 +80,15 @@
     var list = el('ul', { className: 'refine-prereq' });
     prereq.checks.forEach(function (c) {
       var item = el('li', { className: c.ok ? 'refine-ok' : 'refine-missing' });
-      item.appendChild(el('strong', { text: (c.ok ? '충족 · ' : '부족 · ') + c.label }));
+      item.appendChild(el('strong', { text: (c.ok ? t('refine.met') + ' ' : t('refine.missing') + ' ') + c.label }));
       if (!c.ok) {
         item.appendChild(el('p', { text: c.reason || '' }));
         item.appendChild(el('a', { href: c.fix_link, text: c.fix_label }));
       }
       list.appendChild(item);
     });
-    return el('section', { className: 'refine-section', 'aria-label': '정제 전 조건' }, [
-      el('h3', { text: prereq.ready ? '정제 조건 충족' : '정제 전 조건 확인 (부족한 항목을 먼저 보완하세요)' }),
+    return el('section', { className: 'refine-section', 'aria-label': t('refine.pre_refinement_conditions') }, [
+      el('h3', { text: prereq.ready ? t('refine.refinement_conditions_met') : t('refine.check_pre_refinement_conditions_complete') }),
       list
     ]);
   }
@@ -119,7 +119,7 @@
   }
 
   function aiLabel(v) {
-    return v && v.model ? 'AI 초안 (' + v.model + ')' : '규칙 초안';
+    return v && v.model ? t('collect.ai_draft') + v.model + ')' : t('collect.rule_based_draft');
   }
 
   function inlineField(label, tag) {
@@ -134,17 +134,17 @@
     var id = detail.item.id;
     var wrap = el('div', {});
     wrap.appendChild(el('p', { className: 'refine-method',
-      text: '표시: ' + (v.content ? aiLabel(v) : '아직 AI 초안 없음') + ' · 규칙 초안과 따로 보관돼요.' }));
+      text: t('refine.showing') + ' ' + (v.content ? aiLabel(v) : t('refine.no_ai_draft_yet')) + ' ' + t('refine.kept_separately_from_the_rule') }));
     if (!detail.ai || !detail.ai.adopted) {
-      wrap.appendChild(emptyBox('AI 정제 초안 기능이 꺼져 있어요. 규칙 초안과 직접 교정으로 계속할 수 있어요.'));
+      wrap.appendChild(emptyBox(t('refine.ai_refinement_drafts_are_turned')));
     } else {
-      var reqBtn = el('button', { type: 'button', className: 'fm-button', text: 'AI 초안 요청' });
+      var reqBtn = el('button', { type: 'button', className: 'fm-button', text: t('experts.request_ai_draft') });
       reqBtn.disabled = !detail.prereq.ready;
       reqBtn.addEventListener('click', function () {
         api('POST', '/api/refine/works/' + id + '/ai-draft', { expected_version: detail.item.version })
           .then(function (d) {
             memo.tab = 'ai_draft'; render(host, d);
-            if (d.ai_result && !d.ai_result.ok) window.alert('AI 초안을 받지 못했어요(' + d.ai_result.error + '). 현재 승인과 원문은 그대로예요.');
+            if (d.ai_result && !d.ai_result.ok) window.alert(t('catalog.could_not_get_an_ai') + d.ai_result.error + t('refine.the_current_approval_and_original'));
           })
           .catch(function (e) { window.alert(e.userMessage); });
       });
@@ -152,14 +152,14 @@
     }
     if (!v.content) return wrap;
     wrap.appendChild(el('p', { className: 'refine-meta',
-      text: '상태: ' + ({ proposed: '채택 대기 (참고용)', adopted: '채택함', rejected: '기각함' }[v.status] || v.status) +
-        ' · 시각: ' + (v.finished_at || '') }));
+      text: t('refine.status') + ' ' + ({ proposed: t('refine.awaiting_adoption_reference_only'), adopted: t('refine.adopted'), rejected: t('refine.dismissed') }[v.status] || v.status) +
+        ' ' + t('refine.time') + ' ' + (v.finished_at || '') }));
     wrap.appendChild(sectionList(v.content));
-    var who = inlineField('담당자', 'input');
+    var who = inlineField(t('collect.owner'), 'input');
     function decide(kind, label) {
       var b = el('button', { type: 'button', className: 'fm-button', text: label });
       b.addEventListener('click', function () {
-        if (!who.input.value.trim()) { window.alert('담당자를 입력해 주세요.'); return; }
+        if (!who.input.value.trim()) { window.alert(t('collect.please_enter_the_owner')); return; }
         api('POST', '/api/refine/works/' + id + '/ai-draft/' + kind,
           { expected_version: detail.item.version, reviewer: who.input.value.trim() })
           .then(function (d) { memo.tab = 'ai_draft'; render(host, d); })
@@ -169,12 +169,12 @@
     }
     if (v.status === 'proposed') {
       wrap.appendChild(who.row);
-      wrap.appendChild(decide('adopt', '채택 (교정 시작)'));
-      wrap.appendChild(decide('reject', '기각'));
+      wrap.appendChild(decide('adopt', t('refine.adopt_start_correcting')));
+      wrap.appendChild(decide('reject', t('refine.dismiss')));
     }
     if (v.status === 'adopted') {
       wrap.appendChild(el('p', { className: 'refine-meta',
-        text: '채택한 초안을 고쳐 저장하면 새 버전이 되고, 현재 승인은 재검토가 필요해져요.' }));
+        text: t('refine.saving_edits_to_an_adopted') }));
       var edits = {};
       SECTION_KEYS.forEach(function (k) {
         var f = inlineField(SECTION_LABELS[k], 'textarea');
@@ -182,11 +182,11 @@
         edits[k] = f.input;
         wrap.appendChild(f.row);
       });
-      var reason = inlineField('교정 사유', 'textarea');
-      var reviewer = inlineField('담당자', 'input');
+      var reason = inlineField(t('collect.correction_reason'), 'textarea');
+      var reviewer = inlineField(t('collect.owner'), 'input');
       wrap.appendChild(reason.row);
       wrap.appendChild(reviewer.row);
-      var save = el('button', { type: 'button', className: 'fm-button', text: 'AI 초안 교정 저장 (새 버전)' });
+      var save = el('button', { type: 'button', className: 'fm-button', text: t('refine.save_ai_draft_correction_new') });
       save.disabled = !detail.prereq.ready;
       save.addEventListener('click', function () {
         var refined = {};
@@ -194,7 +194,7 @@
         api('POST', '/api/refine/works/' + id + '/correction', {
           expected_version: detail.item.version, refined: refined, from_ai_draft: true,
           correction_reason: reason.input.value, reviewer: reviewer.input.value
-        }).then(function (d) { memo.tab = 'corrected'; render(host, d); window.FMForms.showToast('교정본을 새 버전으로 저장했어요. 재검토가 필요해요.'); })
+        }).then(function (d) { memo.tab = 'corrected'; render(host, d); window.FMForms.showToast(t('refine.corrected_version_saved_as_a')); })
           .catch(function (e) { window.alert(e.userMessage); });
       });
       wrap.appendChild(save);
@@ -205,50 +205,50 @@
   function renderView(detail, key) {
     var v = detail.views[key];
     var wrap = el('div', {});
-    wrap.appendChild(el('p', { className: 'refine-method', text: '생성 방식: ' + v.method_label }));
+    wrap.appendChild(el('p', { className: 'refine-method', text: t('refine.generated_by') + ' ' + v.method_label }));
     if (key === 'original') {
       wrap.appendChild(el('h4', { text: v.title }));
-      wrap.appendChild(el('p', { text: v.body || '원문이 비어 있어요.' }));
+      wrap.appendChild(el('p', { text: v.body || t('refine.the_original_text_is_empty') }));
       (v.materials || []).forEach(function (m) {
         wrap.appendChild(el('div', { className: 'refine-material' }, [
-          el('strong', { text: '연결 자료: ' + m.title }), badge(m.synthetic), el('p', { text: m.body || '' })
+          el('strong', { text: t('refine.linked_material') + ' ' + m.title }), badge(m.synthetic), el('p', { text: m.body || '' })
         ]));
       });
     } else if (key === 'draft') {
-      if (!v.content) wrap.appendChild(emptyBox('아직 초안이 없어요. "초안 만들기"를 누르면 규칙으로 구성해요.'));
+      if (!v.content) wrap.appendChild(emptyBox(t('refine.no_draft_yet_press_create')));
       else wrap.appendChild(sectionList(v.content));
     } else if (key === 'corrected') {
-      if (!v.content) wrap.appendChild(emptyBox('아직 교정본이 없어요. 초안을 바탕으로 교정해 저장하세요.'));
+      if (!v.content) wrap.appendChild(emptyBox(t('refine.no_corrected_version_yet_correct')));
       else {
         wrap.appendChild(sectionList(v.content));
         wrap.appendChild(el('p', { className: 'refine-meta',
-          text: '교정 사유: ' + (v.reason || '') + ' · 담당자: ' + (v.reviewer || '') + ' · 시각: ' + (v.at || '') }));
+          text: t('refine.correction_reason') + ' ' + (v.reason || '') + ' ' + t('refine.owner') + ' ' + (v.reviewer || '') + ' ' + t('refine.time') + ' ' + (v.at || '') }));
       }
     } else if (key === 'evidence') {
-      if (!v.items || !v.items.length) wrap.appendChild(emptyBox('등록된 근거가 없어요.'));
+      if (!v.items || !v.items.length) wrap.appendChild(emptyBox(t('refine.no_evidence_registered')));
       else {
         var ul = el('ul', {});
         v.items.forEach(function (e) { ul.appendChild(el('li', { text: typeof e === 'string' ? e : JSON.stringify(e) })); });
         wrap.appendChild(ul);
       }
-      wrap.appendChild(el('p', { className: 'refine-meta', text: '연결 자료 ' + (v.materials || []).length + '건' }));
+      wrap.appendChild(el('p', { className: 'refine-meta', text: t('refine.linked_materials') + ' ' + (v.materials || []).length + t('collect.items') }));
     }
     return wrap;
   }
 
   function renderReviews(detail) {
-    var box = el('section', { className: 'refine-section', 'aria-label': '승인 이력' });
-    box.appendChild(el('h3', { text: '판정 이력 (과거 판정은 보존됩니다)' }));
+    var box = el('section', { className: 'refine-section', 'aria-label': t('refine.approval_history') });
+    box.appendChild(el('h3', { text: t('refine.decision_history_past_decisions_are') }));
     if (!detail.review.reviews.length) {
-      box.appendChild(emptyBox('아직 승인·반려 기록이 없어요.'));
+      box.appendChild(emptyBox(t('refine.no_approval_or_rejection_recorded')));
     } else {
       var ul = el('ul', { className: 'refine-history' });
       detail.review.reviews.forEach(function (r) {
         ul.appendChild(el('li', {}, [
-          el('strong', { text: (r.decision === 'approved' ? '승인' : '반려') + (r.current_input ? ' · 현재 입력' : ' · 이전 입력') }),
-          el('p', { text: '사유: ' + r.notes }),
-          el('p', { text: '담당자: ' + r.reviewer + ' · 시각: ' + r.created_at + ' · 작업 버전 ' + r.work_version }),
-          el('p', { className: 'refine-hash', text: '입력 해시: ' + r.input_hash.slice(0, 12) + '…' })
+          el('strong', { text: (r.decision === 'approved' ? t('experts.approved') : t('experts.rejected')) + (r.current_input ? ' ' + t('refine.current_input') : ' ' + t('refine.previous_input')) }),
+          el('p', { text: t('collect.reason') + ' ' + r.notes }),
+          el('p', { text: t('refine.owner_2') + ' ' + r.reviewer + ' ' + t('refine.time') + ' ' + r.created_at + ' ' + t('refine.work_version') + ' ' + r.work_version }),
+          el('p', { className: 'refine-hash', text: t('refine.input_hash') + ' ' + r.input_hash.slice(0, 12) + '…' })
         ]));
       });
       box.appendChild(ul);
@@ -256,9 +256,9 @@
     if (detail.revisions.length) {
       var rv = el('ul', { className: 'refine-history' });
       detail.revisions.forEach(function (r) {
-        rv.appendChild(el('li', { text: '원문 개정 v' + r.from_version + ' → v' + r.to_version + ' · ' + r.reason + ' · ' + r.reviewer }));
+        rv.appendChild(el('li', { text: t('refine.original_revision_v') + r.from_version + ' → v' + r.to_version + ' · ' + r.reason + ' · ' + r.reviewer }));
       });
-      box.appendChild(el('h4', { text: '원문 개정 이력' }));
+      box.appendChild(el('h4', { text: t('refine.original_revision_history') }));
       box.appendChild(rv);
     }
     return box;
@@ -269,7 +269,7 @@
     var id = detail.item.id;
     var ready = detail.prereq.ready;
 
-    var draftBtn = el('button', { type: 'button', className: 'fm-button', text: '초안 만들기 (규칙, AI 아님)' });
+    var draftBtn = el('button', { type: 'button', className: 'fm-button', text: t('refine.create_draft_rules_not_ai') });
     draftBtn.disabled = !ready;
     draftBtn.addEventListener('click', function () {
       api('POST', '/api/refine/works/' + id + '/draft', { expected_version: detail.item.version })
@@ -277,21 +277,21 @@
         .catch(function (e) { window.alert(e.userMessage); });
     });
 
-    var correctBtn = el('button', { type: 'button', className: 'fm-button', text: '교정 저장 (새 버전)' });
+    var correctBtn = el('button', { type: 'button', className: 'fm-button', text: t('refine.save_correction_new_version') });
     correctBtn.disabled = !ready;
     correctBtn.addEventListener('click', function () {
       var fields = SECTION_KEYS.map(function (k) { return { name: k, label: SECTION_LABELS[k], type: 'textarea', required: false }; });
-      fields.push({ name: 'correction_reason', label: '교정 사유', type: 'textarea', required: true });
-      fields.push({ name: 'reviewer', label: '담당자', type: 'text', required: true });
+      fields.push({ name: 'correction_reason', label: t('collect.correction_reason'), type: 'textarea', required: true });
+      fields.push({ name: 'reviewer', label: t('collect.owner'), type: 'text', required: true });
       window.FMForms.openForm({
-        title: '정제 교정', fields: fields,
+        title: t('refine.refinement_correction'), fields: fields,
         onSubmit: function (values) {
           var refined = {};
           SECTION_KEYS.forEach(function (k) { if (values[k]) refined[k] = values[k]; });
           return api('POST', '/api/refine/works/' + id + '/correction', {
             expected_version: detail.item.version, refined: refined, from_draft: !!detail.views.draft.content,
             correction_reason: values.correction_reason, reviewer: values.reviewer
-          }).then(function (d) { memo.tab = 'corrected'; render(host, d); window.FMForms.showToast('교정본을 새 버전으로 저장했어요.'); });
+          }).then(function (d) { memo.tab = 'corrected'; render(host, d); window.FMForms.showToast(t('refine.corrected_version_saved_as_a_2')); });
         }
       });
     });
@@ -300,47 +300,47 @@
     var canReview = !!detail.views.corrected.content;
     ['approved', 'rejected'].forEach(function (decision) {
       var btn = el('button', { type: 'button', className: 'fm-button',
-        text: decision === 'approved' ? '승인 기록' : '반려 기록' });
+        text: decision === 'approved' ? t('refine.approval_record') : t('refine.rejection_record') });
       btn.disabled = !canReview || (decision === 'approved' && !ready);
       btn.addEventListener('click', function () {
         window.FMForms.openForm({
-          title: decision === 'approved' ? '작업 승인' : '작업 반려',
+          title: decision === 'approved' ? t('refine.approve_work') : t('refine.reject_work'),
           fields: [
-            { name: 'notes', label: '판정 사유', type: 'textarea', required: true },
-            { name: 'reviewer', label: '운영책임자 이름 (지정된 사람)', type: 'text', required: true }
+            { name: 'notes', label: t('experts.decision_reason'), type: 'textarea', required: true },
+            { name: 'reviewer', label: t('refine.operations_owner_name_the_designated'), type: 'text', required: true }
           ],
           onSubmit: function (values) {
             return api('POST', '/api/refine/works/' + id + '/validate', {
               decision: decision, notes: values.notes, reviewer: values.reviewer,
               expected_version: detail.item.version, input_hash: detail.input_hash, evidence_refs: []
-            }).then(function (d) { render(host, d); window.FMForms.showToast('판정을 기록했어요.'); });
+            }).then(function (d) { render(host, d); window.FMForms.showToast(t('refine.decision_recorded')); });
           }
         });
       });
       bar.appendChild(btn);
     });
 
-    var revBtn = el('button', { type: 'button', className: 'fm-button', text: '원문 개정' });
+    var revBtn = el('button', { type: 'button', className: 'fm-button', text: t('refine.revise_original_text') });
     revBtn.addEventListener('click', function () {
       window.FMForms.openForm({
-        title: '원문 개정',
+        title: t('refine.revise_original_text'),
         fields: [
-          { name: 'body', label: '새 원문', type: 'textarea', required: true },
-          { name: 'reason', label: '개정 사유', type: 'textarea', required: true },
-          { name: 'reviewer', label: '담당자', type: 'text', required: true }
+          { name: 'body', label: t('refine.new_original_text'), type: 'textarea', required: true },
+          { name: 'reason', label: t('collect.revision_reason'), type: 'textarea', required: true },
+          { name: 'reviewer', label: t('collect.owner'), type: 'text', required: true }
         ],
         onSubmit: function (values) {
           return api('POST', '/api/refine/works/' + id + '/revise', {
             expected_version: detail.item.version, body: values.body, reason: values.reason, reviewer: values.reviewer
-          }).then(function (d) { render(host, d); window.FMForms.showToast('원문을 개정했어요. 현재 검토는 재검토가 필요해요.'); });
+          }).then(function (d) { render(host, d); window.FMForms.showToast(t('refine.original_text_revised_the_current')); });
         }
       });
     });
 
-    var opBtn = el('button', { type: 'button', className: 'fm-button', text: op ? '운영책임자 변경' : '운영책임자 지정' });
+    var opBtn = el('button', { type: 'button', className: 'fm-button', text: op ? t('refine.change_operations_owner') : t('refine.designate_operations_owner') });
     opBtn.addEventListener('click', function () {
       window.FMForms.openForm({
-        title: '지정 운영책임자', fields: [{ name: 'name', label: '이름', type: 'text', required: true }],
+        title: t('refine.designated_operations_owner'), fields: [{ name: 'name', label: t('experts.name'), type: 'text', required: true }],
         onSubmit: function (values) {
           return api('POST', '/api/refine/operator', { name: values.name }).then(function () {
             return api('GET', '/api/refine/works/' + id).then(function (d) { render(host, d); });
@@ -361,14 +361,14 @@
     var stateKey = detail.review.state;
     var head = el('div', { className: 'refine-head' }, [
       el('h2', { text: item.title }), badge(item.synthetic),
-      el('p', { className: 'refine-status', text: '검토 상태: ' + (STATE_LABELS[stateKey] || stateKey) +
-        ' · 작업 버전 ' + item.version + ' · 지정 운영책임자: ' + (operatorName(detail) || '미지정') })
+      el('p', { className: 'refine-status', text: t('refine.review_status') + ' ' + (STATE_LABELS[stateKey] || stateKey) +
+        ' ' + t('refine.work_version') + ' ' + item.version + ' ' + t('refine.designated_operations_owner_2') + ' ' + (operatorName(detail) || t('feedback.unspecified')) })
     ]);
     if (stateKey === 'review_required') {
       head.appendChild(el('p', { className: 'refine-warning', role: 'status',
-        text: '원문 또는 검토 입력이 바뀌었어요. 이전 승인은 이력으로 남아 있고, 현재 입력에 대한 새 검토가 필요해요.' }));
+        text: t('refine.the_original_text_or_review') }));
     }
-    var back = el('button', { type: 'button', className: 'fm-button', text: '목록으로' });
+    var back = el('button', { type: 'button', className: 'fm-button', text: t('collect.back_to_list') });
     back.addEventListener('click', function () { memo.workId = null; load(host); });
 
     host.replaceChildren(back, head, renderPrereq(detail.prereq));
@@ -386,13 +386,13 @@
 
   function renderList(host, data) {
     var items = data.items || [];
-    var head = el('p', { text: '정제할 작업을 고르세요. 원문·전문가·카탈로그 조건을 먼저 확인합니다.' });
-    if (!items.length) { host.replaceChildren(head, emptyBox('정제할 작업이 없어요.')); return; }
+    var head = el('p', { text: t('refine.choose_work_to_refine_original') });
+    if (!items.length) { host.replaceChildren(head, emptyBox(t('refine.no_work_to_refine'))); return; }
     var ul = el('ul', { className: 'refine-list' });
     items.forEach(function (it) {
       var btn = el('button', { type: 'button', className: 'fm-button refine-pick' }, [
         el('strong', { text: it.title }), badge(it.synthetic),
-        el('span', { text: ' · ' + (STATE_LABELS[it.state] || it.state) + (it.prereq_ready ? '' : ' · 조건 부족') })
+        el('span', { text: ' · ' + (STATE_LABELS[it.state] || it.state) + (it.prereq_ready ? '' : ' ' + t('refine.conditions_not_met')) })
       ]);
       btn.addEventListener('click', function () { openWork(host, it.id); });
       ul.appendChild(el('li', {}, [btn]));
@@ -401,18 +401,18 @@
   }
 
   function openWork(host, id) {
-    host.replaceChildren(emptyBox('불러오는 중이에요…'));
+    host.replaceChildren(emptyBox(t('refine.loading')));
     api('GET', '/api/refine/works/' + id).then(function (d) { render(host, d); })
-      .catch(function (e) { host.replaceChildren(errorBox(e.userMessage || '작업을 불러오지 못했어요.')); });
+      .catch(function (e) { host.replaceChildren(errorBox(e.userMessage || t('refine.could_not_load_the_work'))); });
   }
 
   function load(host) {
-    host.replaceChildren(emptyBox('불러오는 중이에요…'));
+    host.replaceChildren(emptyBox(t('refine.loading')));
     api('GET', '/api/refine/works').then(function (data) {
       memo.list = data;
       renderList(host, data);
     }).catch(function (e) {
-      host.replaceChildren(errorBox(e.userMessage || '정제 목록을 불러오지 못했어요. 잠시 후 다시 시도하세요.'));
+      host.replaceChildren(errorBox(e.userMessage || t('refine.could_not_load_the_refinement')));
     });
   }
 

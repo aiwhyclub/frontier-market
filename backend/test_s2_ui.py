@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 
 from backend.app import create_app
+from backend.i18n_testutil import tk
 
 ROOT = Path(__file__).resolve().parent.parent
 STATIC = ROOT / "static"
@@ -112,22 +113,22 @@ class S2RecordsAssetTest(unittest.TestCase):
     def test_type_switcher_is_labelled_native_select(self):
         self.assertIn("el('select', { id: 's2-type'", self.js_code)
         self.assertIn("el('label', { 'for': 's2-type'", self.js_code)
-        self.assertIn("'기록 유형'", self.js_code)
+        self.assertIn(tk("기록 유형"), self.js_code)
 
     def test_list_shows_synthetic_badge_and_status(self):
         self.assertIn("MSG.synthetic", self.js_code)
-        self.assertIn("'상태 ' + item.status", self.js_code)
+        self.assertIn(tk("상태") + " + ' ' + item.status", self.js_code)
 
     def test_detail_separates_original_and_version_hashes(self):
-        self.assertIn("'원문'", self.js_code)
-        self.assertIn("'원문 해시'", self.js_code)
-        self.assertIn("'입력 해시'", self.js_code)
-        self.assertIn("definition('버전', item.version)", self.js_code)
+        self.assertIn(tk("원문"), self.js_code)
+        self.assertIn(tk("원문 해시"), self.js_code)
+        self.assertIn(tk("입력 해시"), self.js_code)
+        self.assertIn("definition(" + tk("버전") + ", item.version)", self.js_code)
 
     def test_links_open_their_record_and_show_missing_reasons(self):
         self.assertIn("selectRecord(linkType, linkId)", self.js_code)
         self.assertIn("miss.reason", self.js_code)
-        self.assertIn("'연결되지 않은 항목'", self.js_code)
+        self.assertIn(tk("연결되지 않은 항목"), self.js_code)
 
     def test_empty_state_dispatches_existing_form_event(self):
         self.assertIn("new CustomEvent('fm:open-form'", self.js_code)
@@ -139,10 +140,10 @@ class S2RecordsAssetTest(unittest.TestCase):
         self.assertIn("el('a', { className: 'btn btn-primary', href: guide.href", self.js_code)
 
     def test_loading_and_error_states_are_announced(self):
-        self.assertIn("'불러오는 중…'", self.js_code)
+        self.assertIn(tk("불러오는 중…"), self.js_code)
         self.assertIn("role: kind === 'error' ? 'alert' : 'status'", self.js_code)
-        self.assertIn("'다시 시도'", self.js_code)
-        self.assertIn("'서버에 연결하지 못했어요.", self.js_code)
+        self.assertIn(tk("다시 시도"), self.js_code)
+        self.assertIn(tk("서버에 연결하지 못했어요. 인터넷 연결을 확인한 뒤 다시 시도해 주세요. 화면의 선택은 그대로 있어요."), self.js_code)
 
     def test_stale_responses_are_ignored(self):
         self.assertIn("token !== state.listToken", self.js_code)
@@ -163,9 +164,9 @@ class S2RecordsAssetTest(unittest.TestCase):
         self.assertIn("['q', 'field', 'status']", self.js_code)
 
     def test_empty_search_state_is_distinct_from_first_registration_empty_state(self):
-        self.assertIn("'조건에 맞는 ' + info.label + ' 기록이 없어요'", self.js_code)
+        self.assertIn("t('s2.no_matching_records', { label: info.label })", self.js_code)
         self.assertIn("isSearching() ? searchEmptyBlock(info) : emptyBlock(info)", self.js_code)
-        self.assertIn("'검색 지우기'", self.js_code)
+        self.assertIn(tk("검색 지우기"), self.js_code)
 
     def test_search_query_survives_detail_round_trip_via_state(self):
         self.assertIn("query: { q: '', field: '', status: '' }", self.js_code)

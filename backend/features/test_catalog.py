@@ -35,6 +35,7 @@ class CatalogTests(unittest.TestCase):
         if "catalog" not in self.app.blueprints:
             self.app.register_blueprint(catalog.bp)
         self.client = self.app.test_client()
+        self.client.environ_base["HTTP_X_FM_LANG"] = "ko"  # these tests assert the Korean message text
 
     def tearDown(self):
         self._tmp.cleanup()
@@ -184,6 +185,7 @@ class CatalogAiDraftTests(unittest.TestCase):
         self._tmp = tempfile.TemporaryDirectory()
         self.app = create_app(ROOT, Path(self._tmp.name) / "catalog.db")
         self.client = self.app.test_client()
+        self.client.environ_base["HTTP_X_FM_LANG"] = "ko"  # these tests assert the Korean message text
 
     def tearDown(self):
         self._tmp.cleanup()

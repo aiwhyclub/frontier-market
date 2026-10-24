@@ -21,6 +21,7 @@ class RightsTest(unittest.TestCase):
         with closing(db.connect(self.db_path)) as conn:
             rights.init_schema(conn)
         self.client = self.app.test_client()
+        self.client.environ_base["HTTP_X_FM_LANG"] = "ko"  # these tests assert the Korean message text
         r = self.client.post("/api/records/materials", json={
             "title": "권리 테스트 자료", "body": "합성 본문 내용입니다.", "synthetic": True})
         self.mid = r.get_json()["item"]["id"]

@@ -18,7 +18,7 @@ import re
 
 from flask import Blueprint, current_app, jsonify, request
 
-from backend import ai, db
+from backend import ai, db, i18n
 
 bp = Blueprint("refine", __name__, url_prefix="/api/refine")
 
@@ -499,18 +499,18 @@ def _rule_draft(work, ctx):
     body = (work.get("body") or "").strip()
     sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+|\n+", body) if s.strip()]
     cat = ctx["catalog"][0] if ctx["catalog"] else {}
-    capability = cat.get("target_capability") or "목표 능력 미지정"
-    domain = cat.get("domain") or "분야 미지정"
-    observed = " / ".join(sentences[:3]) if sentences else "원문에 관찰 문장이 없습니다. 자료를 보완하세요."
+    capability = cat.get("target_capability") or i18n.tr("목표 능력 미지정")
+    domain = cat.get("domain") or i18n.tr("분야 미지정")
+    observed = " / ".join(sentences[:3]) if sentences else i18n.tr("원문에 관찰 문장이 없습니다. 자료를 보완하세요.")
     return {
-        "context": f"{cat.get('title') or '카탈로그 미연결'} ({domain}) 과제의 '{work['title']}' 작업입니다. "
-                   f"목표 능력: {capability}.",
-        "observation": f"관찰 사실(원문 발췌): {observed}",
-        "novice_errors": "[추가 확인 필요] 초보자가 자주 하는 오류는 전문가 설명 없이 추정하지 않습니다.",
-        "judgement": "[추가 확인 필요] 판단 기준과 예외는 전문가가 채워야 합니다.",
-        "outcome_check": "[추가 확인 필요] 결과를 확인하는 방법을 원문 근거와 함께 적으세요.",
-        "criteria": f"[초안] '{capability}'를 원문 관찰 근거와 대조해 확인합니다.",
-        "questions": "1. 원문에서 빠진 관찰 단서가 있나요?\n2. 예외 상황은 무엇인가요?",
+        "context": i18n.tr("{} ({}) 과제의 '{}' 작업입니다. 목표 능력: {}.",
+                           cat.get("title") or i18n.tr("카탈로그 미연결"), domain, work["title"], capability),
+        "observation": i18n.tr("관찰 사실(원문 발췌): {}", observed),
+        "novice_errors": i18n.tr("[추가 확인 필요] 초보자가 자주 하는 오류는 전문가 설명 없이 추정하지 않습니다."),
+        "judgement": i18n.tr("[추가 확인 필요] 판단 기준과 예외는 전문가가 채워야 합니다."),
+        "outcome_check": i18n.tr("[추가 확인 필요] 결과를 확인하는 방법을 원문 근거와 함께 적으세요."),
+        "criteria": i18n.tr("[초안] '{}'를 원문 관찰 근거와 대조해 확인합니다.", capability),
+        "questions": i18n.tr("1. 원문에서 빠진 관찰 단서가 있나요?\n2. 예외 상황은 무엇인가요?"),
     }
 
 

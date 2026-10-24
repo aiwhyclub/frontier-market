@@ -20,7 +20,7 @@ class FirstScreenTest(unittest.TestCase):
         body = res.get_data(as_text=True)
         self.assertEqual(res.status_code, 200)
         self.assertIn("Frontier Lab Market", body)
-        self.assertIn("합성 데이터 시연", body)
+        self.assertIn("Synthetic data demo", body)
 
     def test_health_reports_db(self):
         data = self.client.get("/api/health").get_json()
@@ -64,7 +64,7 @@ class AppShellTest(unittest.TestCase):
         body = self._page()
         for key in self.STAGES:
             self.assertIn(f'href="#{key}" data-screen="{key}"', body)
-        for name in ["대시보드", "자료 수집", "DB", "전문가", "카탈로그", "정제·검증", "FDE", "가상회사"]:
+        for name in ["Dashboard", "Collect", "DB", "Experts", "Catalog", "Refine/Verify", "FDE", "Virtual company"]:
             self.assertIn(name, body)
 
     def test_index_keeps_product_name_and_notice_visible_in_shell(self):
@@ -72,7 +72,7 @@ class AppShellTest(unittest.TestCase):
         self.assertIn('class="brand"', body)
         self.assertIn("Frontier Lab Market", body)
         self.assertIn('class="sidebar-note"', body)
-        self.assertIn("합성 데이터 시연", body)
+        self.assertIn("Synthetic data demo", body)
 
     def test_viewport_meta_present_for_mobile_width(self):
         body = self._page()
