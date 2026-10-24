@@ -82,6 +82,11 @@
   }
 
   /* ---- topbar: login / logout entry ---- */
+  window.addEventListener('fm:langchange', function () {
+    var old = document.querySelector('.topbar .fm-demo-bar');
+    if (old) { old.remove(); topbarActions(); }
+  });
+
   function topbarActions() {
     var bar = document.querySelector('.topbar');
     if (!bar || bar.querySelector('.fm-demo-bar')) { return; }
