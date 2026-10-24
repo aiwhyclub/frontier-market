@@ -1,0 +1,295 @@
+/* ui-forms.css — 등록 폼·상세·토스트 공통 틀 (STORY 1.3)
+ * 색·간격·모서리는 docs/design.md §4 제안값을 따른다. 모든 선택자는 fm- 접두를 쓴다.
+ */
+:root {
+  --fm-navy: #172c3a;
+  --fm-cream: #f7f5ef;
+  --fm-surface: #ffffff;
+  --fm-text: #1d2c2b;
+  --fm-muted: #5c6765;
+  --fm-primary: #1e6b60;
+  --fm-primary-text: #ffffff;
+  --fm-error: #a63b36;
+  --fm-divider: #dce3dd;
+  --fm-field-edge: #778a84;
+  --fm-focus: #172c3a;
+  --fm-radius-input: 8px;
+  --fm-radius-panel: 16px;
+  --fm-gap: 16px;
+  --fm-touch: 44px;
+}
+
+body {
+  background: var(--fm-cream);
+  color: var(--fm-text);
+}
+
+/* 대화상자: 데스크톱은 가운데 패널, 520px 이하는 전체 화면 */
+.fm-dialog {
+  box-sizing: border-box;
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--fm-divider);
+  border-radius: var(--fm-radius-panel);
+  background: var(--fm-surface);
+  color: var(--fm-text);
+  font: 16px/1.5 system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  overflow: hidden;
+}
+
+.fm-dialog::backdrop {
+  background: rgba(23, 44, 58, 0.45);
+}
+
+.fm-form {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 32px);
+}
+
+.fm-title {
+  margin: 0;
+  padding: var(--fm-gap) var(--fm-gap) 8px;
+  font-size: 20px;
+  line-height: 1.3;
+  color: var(--fm-navy);
+}
+
+.fm-title:focus {
+  outline: none;
+}
+
+.fm-fields,
+.fm-rows {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 var(--fm-gap);
+}
+
+.fm-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: var(--fm-gap);
+}
+
+.fm-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.fm-label-text {
+  overflow-wrap: anywhere;
+}
+
+/* 필수/선택은 색과 함께 글자로 표시한다 */
+.fm-badge {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--fm-muted);
+  border: 1px solid var(--fm-divider);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+
+.fm-badge-required {
+  color: var(--fm-text);
+  border-color: var(--fm-field-edge);
+}
+
+.fm-input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: var(--fm-touch);
+  padding: 10px 12px;
+  border: 1px solid var(--fm-field-edge);
+  border-radius: var(--fm-radius-input);
+  background: var(--fm-surface);
+  color: var(--fm-text);
+  font: inherit;
+  font-size: 16px; /* iOS 자동 확대 방지 */
+}
+
+textarea.fm-input {
+  resize: vertical;
+  min-height: 96px;
+}
+
+.fm-input[aria-invalid="true"] {
+  border: 2px solid var(--fm-error);
+}
+
+.fm-field-error {
+  margin: 0;
+  font-size: 14px;
+  color: var(--fm-error);
+}
+
+.fm-field-error[hidden] {
+  display: none;
+}
+
+/* 폼 전체 오류 요약 (aria-live assertive) */
+.fm-error {
+  margin: 0 var(--fm-gap) var(--fm-gap);
+  padding: 12px;
+  border: 1px solid var(--fm-error);
+  border-radius: var(--fm-radius-input);
+  color: var(--fm-error);
+  background: var(--fm-surface);
+  font-weight: 600;
+}
+
+.fm-error[hidden] {
+  display: none;
+}
+
+.fm-error:focus {
+  outline: 3px solid var(--fm-focus);
+  outline-offset: 2px;
+}
+
+/* 하단 행동 영역: safe-area와 가상 키보드 여백을 반영 */
+.fm-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px var(--fm-gap) calc(12px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--fm-divider);
+  background: var(--fm-surface);
+}
+
+.fm-status {
+  margin: 0;
+  min-height: 1.5em;
+  font-size: 14px;
+  color: var(--fm-muted);
+}
+
+.fm-status:focus {
+  outline: 3px solid var(--fm-focus);
+  outline-offset: 2px;
+}
+
+.fm-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.fm-btn {
+  min-height: var(--fm-touch);
+  min-width: var(--fm-touch);
+  padding: 8px 16px;
+  border: 1px solid var(--fm-field-edge);
+  border-radius: var(--fm-radius-input);
+  background: var(--fm-surface);
+  color: var(--fm-text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.fm-btn-primary {
+  border-color: var(--fm-primary);
+  background: var(--fm-primary);
+  color: var(--fm-primary-text);
+}
+
+.fm-btn:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.fm-btn:focus-visible,
+.fm-input:focus-visible,
+.fm-dialog button:focus-visible {
+  outline: 3px solid var(--fm-focus);
+  outline-offset: 2px;
+}
+
+.fm-input:focus-visible {
+  border-color: var(--fm-focus);
+}
+
+/* 상세 패널: 읽기 전용 목록 */
+.fm-rows {
+  display: grid;
+  grid-template-columns: minmax(96px, 30%) 1fr;
+  gap: 8px 16px;
+  margin: 0;
+  padding-bottom: var(--fm-gap);
+}
+
+.fm-row-label {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fm-muted);
+}
+
+.fm-row-value {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* 토스트: 성공 안내 (aria-live polite) */
+.fm-toast-region {
+  position: fixed;
+  left: 50%;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 1000;
+  width: min(480px, calc(100vw - 32px));
+  pointer-events: none;
+}
+
+.fm-toast {
+  margin: 8px 0 0;
+  padding: 12px 16px;
+  border-radius: var(--fm-radius-input);
+  background: var(--fm-navy);
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 4px 16px rgba(23, 44, 58, 0.2);
+}
+
+/* 520px 이하: 전체 화면 폼·상세 */
+@media (max-width: 520px) {
+  .fm-dialog {
+    width: 100vw;
+    max-width: 100vw;
+    height: 100dvh;
+    max-height: 100dvh;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .fm-form {
+    height: 100dvh;
+    max-height: 100dvh;
+  }
+
+  .fm-rows {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .fm-row-label {
+    margin-top: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fm-toast {
+    transition: none;
+  }
+}

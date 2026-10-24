@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="도제 경험으로 쌓은 지식을 검증 가능한 AI 자산으로 연결하는 Frontier Market 작업 공간">
+  <title>Frontier Market</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/ui-forms.css">
+  <link rel="stylesheet" href="/static/s2-records.css">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">본문으로 이동</a>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar" aria-label="주 탐색">
+      <a class="brand" href="#dashboard">
+        <span class="brand-mark" aria-hidden="true">FM</span>
+        <span>Frontier Market</span>
+      </a>
+      <button type="button" class="nav-toggle" id="nav-toggle" aria-controls="primary-nav" aria-expanded="false">단계 메뉴 열기</button>
+      <nav id="primary-nav" aria-label="단계 탐색">
+        <ul class="nav-list">
+          <li><a href="#dashboard" data-screen="dashboard"><span class="nav-code">S0</span><span>대시보드</span></a></li>
+          <li><a href="#s1" data-screen="s1"><span class="nav-code">S1</span><span>자료 수집</span></a></li>
+          <li><a href="#s2" data-screen="s2"><span class="nav-code">S2</span><span>DB</span></a></li>
+          <li><a href="#s3" data-screen="s3"><span class="nav-code">S3</span><span>전문가</span></a></li>
+          <li><a href="#s4" data-screen="s4"><span class="nav-code">S4</span><span>카탈로그</span></a></li>
+          <li><a href="#s5" data-screen="s5"><span class="nav-code">S5</span><span>정제·검증</span></a></li>
+          <li><a href="#s6" data-screen="s6"><span class="nav-code">S6</span><span>FDE</span></a></li>
+          <li><a href="#s7" data-screen="s7"><span class="nav-code">S7</span><span>가상회사</span></a></li>
+        </ul>
+      </nav>
+      <div class="sidebar-note" role="note">
+        <strong>합성 데이터 시연</strong>
+        <p>이 화면의 모든 예시는 합성 가공 자료입니다. 실제 모집·현장 수행·계약을 완료한 사례가 아닙니다.</p>
+      </div>
+    </aside>
+
+    <div class="main-shell">
+      <header class="topbar">
+        <nav class="breadcrumbs" aria-label="현재 위치">
+          <span>워크스페이스</span>
+          <span aria-hidden="true">/</span>
+          <strong id="breadcrumb-current" aria-current="page">S0 대시보드</strong>
+        </nav>
+        <span class="env-badge">프로토타입</span>
+      </header>
+      <main id="main-content" tabindex="-1">
+        <noscript><p class="empty-state">이 화면은 JavaScript가 켜져 있어야 단계별 내용을 표시합니다.</p></noscript>
+      </main>
+    </div>
+  </div>
+  <div id="dialog-root"></div>
+  <script src="/static/app.js" defer></script>
+  <script src="/static/ui-forms.js" defer></script>
+  <script src="/static/s2-records.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,80 @@
+/* s2-records.css — S2 지식 DB 목록·상세 (STORY 2.4, F2.2)
+ * styles.css의 색 토큰과 간격을 그대로 쓴다. 16px 가장자리 여백은 main#main-content가 맡고
+ * 이 화면은 추가 가로 여백을 두지 않는다. 긴 원문·해시는 안에서 줄바꿈하고 가로 넘침을 만들지 않는다.
+ */
+
+.s2-root{min-width:0;max-width:100%}
+.s2-layout{display:flex;flex-direction:column;gap:16px;min-width:0;max-width:100%}
+
+/* 유형 선택 */
+.s2-switcher{display:flex;flex-direction:column;gap:6px;max-width:320px}
+.s2-label{font-size:14px;font-weight:700;color:var(--muted)}
+.s2-select{min-height:44px;width:100%;padding:8px 12px;font:inherit;font-size:16px;color:var(--ink);background:var(--surface);border:1px solid var(--field-line);border-radius:var(--radius)}
+
+/* 목록·상세 패널 */
+.s2-list,.s2-detail{display:flex;flex-direction:column;gap:12px;min-width:0;max-width:100%}
+.s2-list .section-title,.s2-detail h3{overflow-wrap:anywhere}
+.s2-detail h3{font-size:22px}
+.s2-count{font-size:14px;color:var(--muted)}
+.s2-list-body,.s2-detail-body{display:flex;flex-direction:column;gap:12px;min-width:0}
+.s2-detail-body{background:var(--surface);border:1px solid var(--divider);border-radius:var(--radius);padding:16px;gap:16px}
+.s2-pick{color:var(--muted)}
+
+/* 목록 카드 */
+.s2-cards,.s2-links,.s2-missing{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.s2-card-button,.s2-link-button{display:flex;flex-direction:column;align-items:flex-start;gap:6px;width:100%;min-height:44px;padding:12px 16px;font:inherit;text-align:left;color:var(--ink);background:var(--surface);border:1px solid var(--divider);border-radius:var(--radius);cursor:pointer;min-width:0}
+.s2-card-button:hover,.s2-link-button:hover{border-color:var(--primary)}
+.s2-card-button[aria-current="true"]{border-color:var(--primary);box-shadow:inset 4px 0 0 var(--primary)}
+.s2-card-title{font-weight:700;overflow-wrap:anywhere;display:block}
+.s2-card-meta,.s2-meta-row{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
+.s2-meta{font-size:13px;color:var(--muted)}
+.s2-muted{font-size:14px;color:var(--muted);overflow-wrap:anywhere}
+.s2-badge{font-size:13px;color:var(--warn);border:1px solid var(--warn);border-radius:999px;padding:0 8px;white-space:nowrap}
+.s2-kicker{font-size:13px;font-weight:700;letter-spacing:.04em;color:var(--primary)}
+
+/* 상태·오류 */
+.s2-status{font-size:15px;color:var(--muted)}
+.s2-status-error{color:var(--error);font-weight:700}
+.s2-error{display:flex;flex-direction:column;gap:12px;align-items:flex-start}
+.s2-error .btn{min-width:120px}
+
+/* 빈 상태는 styles.css의 .empty-state를 쓰고 여기서는 폭만 맞춘다 */
+.s2-empty{margin:0}
+
+/* 상세 본문 */
+.s2-detail-head{display:flex;flex-direction:column;gap:8px;min-width:0}
+.s2-section{display:flex;flex-direction:column;gap:8px;min-width:0;padding-top:12px;border-top:1px solid var(--divider)}
+.s2-section h4{font-size:16px;margin:0}
+.s2-body{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;font-size:16px;line-height:1.7;background:var(--bg);border:1px solid var(--divider);border-radius:var(--radius);padding:12px;max-height:50vh;overflow-y:auto;overflow-x:hidden}
+.s2-dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 12px;margin:0;font-size:14px}
+.s2-dl dt{color:var(--muted);font-weight:700}
+.s2-dl dd{margin:0;overflow-wrap:anywhere;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+.s2-links .s2-link-button{background:var(--bg)}
+.s2-missing li{display:flex;flex-direction:column;gap:2px;padding:8px 0;border-bottom:1px solid var(--divider);min-width:0}
+.s2-missing li:last-child{border-bottom:0}
+
+/* 뒤로 가기: 좁은 화면에서만 보인다 */
+.s2-back{align-self:flex-start;display:none}
+.s2-back[hidden]{display:none}
+
+/* 좁은 화면(1023px 이하): 목록 → 전체 화면 상세 */
+@media (max-width:1023px){
+  .s2-layout[data-view="list"] .s2-detail{display:none}
+  .s2-layout[data-view="detail"] .s2-list{display:none}
+  .s2-layout[data-view="detail"] .s2-back:not([hidden]){display:inline-flex}
+  .s2-layout[data-view="detail"] .s2-detail{display:flex}
+}
+
+/* 넓은 화면(1024px 이상): 목록과 상세를 나란히 */
+@media (min-width:1024px){
+  .s2-layout{display:grid;grid-template-columns:minmax(260px,360px) minmax(0,1fr);align-items:start;gap:24px}
+  .s2-switcher{grid-column:1 / -1}
+  .s2-detail-body{min-height:240px}
+}
+
+@media (max-width:519px){
+  .s2-detail-body{padding:12px}
+  .s2-detail h3{font-size:20px}
+  .s2-dl{grid-template-columns:1fr}
+  .s2-dl dt{margin-top:6px}
+}

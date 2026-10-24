@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#132b2b">
+  <meta name="description" content="도제 경험으로 쌓은 지식을 검증 가능한 AI 자산으로 연결하는 Frontier Market 작업 공간">
+  <title>Frontier Market · 지식에서 가능성으로</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23132b2b'/%3E%3Cpath d='M17 47V17h31v8H26v7h17v8H26v7z' fill='%23c2dbb4'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">본문으로 이동</a>
+  <div id="app" class="app-shell">
+    <aside class="sidebar" aria-label="주 탐색">
+      <a class="brand" href="#dashboard" aria-label="Frontier Market 대시보드">
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M6 26V6h21v5H12v5h12v5H12v5z" fill="currentColor"/></svg></span>
+        <span>frontier<span class="brand-sub">MARKET</span></span>
+      </a>
+      <div class="workspace"><span class="workspace-avatar">F</span><div><strong>Frontier Workspace</strong><small>지식 자산 운영 공간</small></div><span class="workspace-caret" aria-hidden="true">⌄</span></div>
+      <div class="nav-label">WORKSPACE</div>
+      <nav id="primary-nav"></nav>
+      <div class="sidebar-bottom"><div class="workspace-note"><span class="signal-dot"></span><strong>합성 데이터 시연</strong><p>실제 모집·현장 수행·계약을<br>완료한 사례가 아닙니다.</p></div><button class="sidebar-feedback" data-action="feedback" data-kind="topic"><span aria-hidden="true">↗</span> 필요한 주제 제안하기</button><div class="sidebar-footer"><span class="user-avatar">FL</span><div><strong>Frontier Team</strong><small>운영자 · 데모 환경</small></div><span class="tiny-badge">MVP</span></div></div>
+    </aside>
+    <div class="main-shell">
+      <header class="topbar"><button class="mobile-menu icon-button" id="mobile-menu" aria-label="메뉴 열기" aria-expanded="false">☰</button><div class="breadcrumbs"><span>워크스페이스</span><span aria-hidden="true">/</span><strong id="breadcrumb-title">대시보드</strong></div><div class="topbar-actions"><span class="environment"><span class="signal-dot"></span> 프로토타입</span><button class="icon-button" data-action="refresh" aria-label="데이터 새로고침" title="데이터 새로고침"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M6 8a7 7 0 0 1 12-2l2 3M4 15l2 3a7 7 0 0 0 12-2"/></svg></button><span class="topbar-avatar" aria-label="Frontier Team">F</span></div></header>
+      <main id="main-content" tabindex="-1"><div class="loading-page" role="status"><span class="loading-line"></span><span class="loading-line short"></span><p>워크스페이스를 불러오고 있습니다.</p></div></main>
+      <footer class="main-footer"><span>Frontier Market</span><span>도제 경험의 깊이를, AI의 다음 가능성으로.</span><span>DEMO · 2026</span></footer>
+    </div>
+  </div>
+  <dialog id="form-dialog" aria-labelledby="dialog-title"><div class="dialog-head"><div><span class="eyebrow" id="dialog-eyebrow">WORKSPACE</span><h2 id="dialog-title"></h2></div><button class="icon-button" data-action="close-dialog" aria-label="창 닫기">✕</button></div><div id="dialog-body"></div></dialog>
+  <div id="toast-region" class="toast-region" role="status" aria-live="polite" aria-atomic="true"></div>
+</body>
+</html>
