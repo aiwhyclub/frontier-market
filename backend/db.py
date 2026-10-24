@@ -8,6 +8,7 @@ Uses only the standard sqlite3 module. Hashes and versions are kept apart (TRD Â
 
 import hashlib
 import json
+import os
 import re
 import secrets
 import sqlite3
@@ -132,8 +133,24 @@ def material_hash_of(record_type, title, body, fields):
     return hashlib.sha256(canonical_json(payload).encode("utf-8")).hexdigest()
 
 
+def database_url():
+    """Postgres connection string from DATABASE_URL, or None for the default SQLite file."""
+    return (os.environ.get("DATABASE_URL") or "").strip() or None
+
+
+def is_postgres(conn):
+    return bool(getattr(conn, "is_postgres", False))
+
+
 def connect(db_path):
-    """Open a connection with autocommit (transactions are explicit) and FK enforcement."""
+    """Open a connection with autocommit (transactions are explicit) and FK enforcement.
+
+    With DATABASE_URL set this is a Postgres connection (dbcompat wrapper) and db_path is ignored.
+    """
+    url = database_url()
+    if url:
+        from backend import dbcompat
+        return dbcompat.connect_postgres(url)
     conn = sqlite3.connect(str(db_path), timeout=5, isolation_level=None)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
@@ -153,10 +170,29 @@ def write_transaction(conn):
         conn.execute("COMMIT")
 
 
+@contextmanager
+def init_lock(conn):
+    """Serialize schema/seed setup across processes (cold starts). No-op for SQLite."""
+    if not is_postgres(conn):
+        yield
+        return
+    conn.execute("SELECT pg_advisory_lock(7013001)")
+    try:
+        yield
+    finally:
+        conn.execute("SELECT pg_advisory_unlock(7013001)")
+
+
 def _schema_version(conn):
-    has_meta = conn.execute(
-        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'metadata'"
-    ).fetchone()
+    if is_postgres(conn):
+        has_meta = conn.execute(
+            "SELECT 1 FROM information_schema.tables "
+            "WHERE table_schema = current_schema() AND table_name = 'metadata'"
+        ).fetchone()
+    else:
+        has_meta = conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'metadata'"
+        ).fetchone()
     if not has_meta:
         return 0
     row = conn.execute("SELECT value FROM metadata WHERE key = 'schema_version'").fetchone()
@@ -183,7 +219,8 @@ def init_db(db_path):
     conn = connect(db_path)
     try:
         conn.execute("PRAGMA journal_mode = WAL")
-        migrate(conn)
+        with init_lock(conn):
+            migrate(conn)
     finally:
         conn.close()
 

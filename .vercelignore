@@ -1,0 +1,8 @@
+.venv
+data
+legacy_draft
+.env
+.env.*
+__pycache__
+*.sqlite3
+.claude
