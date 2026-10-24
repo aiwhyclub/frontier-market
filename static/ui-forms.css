@@ -2,17 +2,17 @@
  * 색·간격·모서리는 docs/design.md §4 제안값을 따른다. 모든 선택자는 fm- 접두를 쓴다.
  */
 :root {
-  --fm-navy: #172c3a;
-  --fm-cream: #f7f5ef;
-  --fm-surface: #ffffff;
-  --fm-text: #1d2c2b;
-  --fm-muted: #5c6765;
-  --fm-primary: #1e6b60;
-  --fm-primary-text: #ffffff;
-  --fm-error: #a63b36;
-  --fm-divider: #dce3dd;
-  --fm-field-edge: #778a84;
-  --fm-focus: #172c3a;
+  --fm-navy: var(--ink, #172c3a);
+  --fm-cream: var(--bg, #f7f5ef);
+  --fm-surface: var(--surface);
+  --fm-text: var(--ink);
+  --fm-muted: var(--muted);
+  --fm-primary: var(--primary, #1e6b60);
+  --fm-primary-text: var(--primary-ink);
+  --fm-error: var(--error, #a63b36);
+  --fm-divider: var(--divider);
+  --fm-field-edge: var(--field-line);
+  --fm-focus: var(--focus);
   --fm-radius-input: 8px;
   --fm-radius-panel: 16px;
   --fm-gap: 16px;
@@ -40,7 +40,7 @@ body {
 }
 
 .fm-dialog::backdrop {
-  background: rgba(23, 44, 58, 0.45);
+  background: var(--scrim);
 }
 
 .fm-form {
@@ -256,8 +256,8 @@ textarea.fm-input {
   margin: 8px 0 0;
   padding: 12px 16px;
   border-radius: var(--fm-radius-input);
-  background: var(--fm-navy);
-  color: #ffffff;
+  background: var(--toast-bg);
+  color: var(--toast-ink);
   font-weight: 600;
   box-shadow: 0 4px 16px rgba(23, 44, 58, 0.2);
 }
