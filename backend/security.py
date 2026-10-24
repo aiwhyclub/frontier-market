@@ -14,6 +14,7 @@ cookie or query string can move it.
 """
 
 import hashlib
+import os
 import hmac
 import secrets
 from dataclasses import dataclass
@@ -90,6 +91,10 @@ def _parse_optional(text):
         return parse_utc(text) if text else None
     except ValueError:
         return None
+
+
+def open_operator():
+    return current_app.config.get("FM_ENV", {}).get("FM_OPEN_OPERATOR", os.environ.get("FM_OPEN_OPERATOR")) == "1"
 
 
 def settings():
@@ -240,7 +245,9 @@ def login():
         return error(503, "misconfigured", "공개 시연 설정이 완료되지 않았습니다.")
     body = request.get_json(silent=True) or {}
     token = body.get("token") if isinstance(body, dict) else None
-    if not isinstance(token, str) or not hmac.compare_digest(
+    if open_operator():
+        pass  # FM_OPEN_OPERATOR=1: demo choice to let anyone enter operator mode without a token
+    elif not isinstance(token, str) or not hmac.compare_digest(
             hashlib.sha256(token.encode()).digest(), hashlib.sha256(cfg.operator_token.encode()).digest()):
         return error(401, "bad_token", "인증에 실패했습니다.")
     if not _same_origin():

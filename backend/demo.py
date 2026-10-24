@@ -155,7 +155,8 @@ def status():
     """Tells the static UI it is running in public mode (404 here means local mode). The gate has
     already answered 410 `closed` after the end time, so reaching this means the demo is open."""
     return _respond({"public": True, "closed": False,
-                     "public_end": security.settings().end.strftime("%Y-%m-%dT%H:%M:%SZ")})
+                     "public_end": security.settings().end.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                     "open_operator": security.open_operator()})
 
 
 @bp.get("/bootstrap")

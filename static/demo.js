@@ -53,6 +53,8 @@
       });
   }
 
+  var openOperator = false;
+
   function formatEnd() {
     if (!publicEnd) { return '2026-10-24 21:00 (KST)'; }
     var d = new Date(publicEnd);
@@ -111,6 +113,10 @@
   }
 
   function openLogin() {
+    if (openOperator) {
+      postJSON('/api/auth/login', {}).then(function (r) { if (r.status === 200) { window.location.reload(); } });
+      return;
+    }
     var root = document.getElementById('dialog-root') || document.body;
     var opener = document.activeElement;
     var wrap = document.createElement('div');
@@ -356,6 +362,7 @@
     var decided = getJSON('/api/demo/status').then(function (res) {
       if (res.status === 200 && res.body && res.body.public) {
         publicEnd = res.body.public_end;
+        openOperator = !!res.body.open_operator;
         return 'public';
       }
       if (res.status === 410) { return 'closed'; }
