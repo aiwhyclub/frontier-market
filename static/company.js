@@ -128,6 +128,12 @@
     if (!training.length && !evaluation.length) {
       wrap.appendChild(el("p", { className: "empty", text: "이 패키지에 샘플이 없습니다." }));
     }
+    ((pkg && pkg.ai_drafts) || []).forEach(function (a) {
+      wrap.appendChild(el("h4", { text: a.label + " — 사람이 검토·수정해 채택한 문서/학습 사례" }));
+      wrap.appendChild(el("p", { text: (a.document_title || "") + "\n" + (a.document_body || "") }));
+      wrap.appendChild(el("p", { text: "학습 사례: " + (a.learning_case || "없음") }));
+      wrap.appendChild(el("p", { className: "muted", text: a.note }));
+    });
     return wrap;
   }
 
@@ -295,6 +301,51 @@
         });
       } });
 
+    /* F10.6: AI 문서·학습 사례 초안. 생성 게이트를 통과한 뒤에만 만들고, 사람이 고쳐 채택해야 스냅샷에 들어간다. */
+    var aiBox = el("div", { className: "ai-draft", id: "company-ai-box" });
+    var aiMsg = el("p", { className: "muted", role: "status", id: "company-ai-msg" });
+    var aiBtn = el("button", { type: "button", className: "btn", id: "company-ai-make", disabled: "disabled",
+      text: "AI 문서·학습 사례 초안 만들기" });
+    request("GET", "/api/company/ai-status").then(function (res) {
+      if (res.ok && res.data.adopted) {
+        aiMsg.textContent = "AI 사용 가능: " + res.data.label + ". 권리·사람 검증 조건을 통과한 작업만 사용해요. 실제 모델 훈련은 수행하지 않아요.";
+        aiBtn.removeAttribute("disabled");
+      } else {
+        aiMsg.textContent = "AI 초안은 채택되지 않았어요. 회사 만들기는 그대로 사용할 수 있어요.";
+      }
+    });
+    aiBtn.addEventListener("click", function () {
+      aiBox.textContent = "";
+      request("POST", "/api/company/ai-draft", payload()).then(function (res) {
+        if (res.status === 409) { aiMsg.textContent = "권리·검토 조건이 부족해 AI 초안을 만들지 않았습니다."; showHolds(res.data.holds); return; }
+        if (!res.ok) {
+          aiMsg.textContent = (res.data.errors || []).map(function (x) { return x.message; }).join(" ") || errMessage(res, "초안을 만들지 못했습니다.");
+          return;
+        }
+        if (!res.data.draft) { aiMsg.textContent = "AI 초안을 받지 못했어요(" + (res.data.ai.error || "미채택") + "). 수동으로 만들 수 있어요."; return; }
+        aiMsg.textContent = res.data.ai.label + " — 아직 저장되지 않았어요. " + res.data.note;
+        var fields = {};
+        [["document_title", "문서 제목", "input"], ["document_body", "문서 본문", "textarea"],
+          ["learning_case", "학습 사례", "textarea"]].forEach(function (f) {
+          var input = el(f[2], { id: "company-ai-" + f[0] });
+          input.value = res.data.draft[f[0]] || "";
+          fields[f[0]] = input;
+          aiBox.appendChild(el("label", {}, [f[1], input]));
+        });
+        aiBox.appendChild(el("button", { type: "button", className: "btn primary", text: "수정 내용으로 채택해 회사 만들기",
+          onclick: function () {
+            var body = payload();
+            body.draft = {};
+            Object.keys(fields).forEach(function (k) { body.draft[k] = fields[k].value.trim(); });
+            request("POST", "/api/company/ai-draft/" + encodeURIComponent(res.data.ai.run_id) + "/adopt", body).then(function (r) {
+              if (r.status === 201) { notify("AI 초안을 포함한 패키지를 만들었습니다."); onCreated(r.data.id); return; }
+              if (r.status === 409 && r.data.holds) { aiMsg.textContent = "채택 시점 확인에서 권리·검토 조건이 부족해 저장하지 않았습니다."; showHolds(r.data.holds); return; }
+              aiMsg.textContent = (r.data.errors || []).map(function (x) { return x.message; }).join(" ") || errMessage(r, "채택하지 못했습니다.");
+            });
+          } }));
+      });
+    });
+
     var submit = el("button", { type: "submit", className: "btn primary", text: "회사 만들기" });
     var form = el("form", { className: "create-form", onsubmit: function (e) {
       e.preventDefault();
@@ -325,7 +376,7 @@
       el("label", {}, ["필수 프로젝트", project]),
       fieldset,
       el("div", { className: "btn-row" }, [checkBtn, submit]),
-      msg, holdsBox
+      msg, holdsBox, el("div", { className: "btn-row" }, [aiBtn]), aiMsg, aiBox
     ]);
     return form;
   }

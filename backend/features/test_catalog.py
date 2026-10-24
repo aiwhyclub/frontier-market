@@ -1,13 +1,15 @@
 """Tests for S4 catalog cards (EPIC 5, F4.1~F4.5)."""
 import json
+import os
 import tempfile
 import unittest
+import unittest.mock
 from contextlib import closing
 from pathlib import Path
 
 from backend import db
 from backend.app import create_app
-from backend.features import catalog
+from backend.features import ai_fakes, catalog
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -170,6 +172,91 @@ class CatalogTests(unittest.TestCase):
     def test_non_json_is_rejected(self):
         resp = self.client.post("/api/catalog/", data="x", content_type="text/plain")
         self.assertEqual(resp.status_code, 415)
+
+
+DRAFT = {"title": "AI 초안: 접합부 치수 판단", "domain": "목공", "summary": "접합부 치수 확인 판단",
+         "judgement_task": "이 접합부가 허용 오차 안인지 판단", "target_capability": "치수 판정",
+         "expected_deliverables": "판정 근거 1장"}
+
+
+class CatalogAiDraftTests(unittest.TestCase):
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.app = create_app(ROOT, Path(self._tmp.name) / "catalog.db")
+        self.client = self.app.test_client()
+
+    def tearDown(self):
+        self._tmp.cleanup()
+
+    def _runs(self):
+        with closing(db.connect(self.app.config["DB_PATH"])) as conn:
+            return [dict(r) for r in conn.execute("SELECT * FROM ai_draft_runs ORDER BY created_at").fetchall()]
+
+    def test_not_adopted_returns_manual_without_calling_provider(self):
+        env = {k: v for k, v in os.environ.items() if k not in ("FM_AI_ENABLED", "ANTHROPIC_API_KEY")}
+        with unittest.mock.patch.dict(os.environ, env, clear=True), \
+                unittest.mock.patch("urllib.request.urlopen") as net:
+            status = self.client.get("/api/catalog/ai-status").get_json()
+            data = self.client.post("/api/catalog/ai-draft", json={"source_ids": ["mat_seed01"]}).get_json()
+        self.assertFalse(status["adopted"])
+        self.assertIsNone(data["draft"])
+        self.assertEqual(data["ai"]["label"], "수동 작성")
+        net.assert_not_called()
+
+    @unittest.skipIf(ai_fakes.REAL, "needs fake")
+    def test_draft_linked_to_sources_is_unsaved_and_recorded(self):
+        calls = ai_fakes.install(self, DRAFT)
+        before = self.client.get("/api/catalog/").get_json()["total"]
+        resp = self.client.post("/api/catalog/ai-draft", json={"source_ids": ["mat_seed01"]})
+        self.assertEqual(resp.status_code, 200, resp.get_json())
+        data = resp.get_json()
+        self.assertEqual(data["draft"]["title"], DRAFT["title"])
+        self.assertEqual(data["source_ids"], ["mat_seed01"])
+        self.assertEqual(data["ai"]["label"], "AI 초안 (claude-test-1)")
+        self.assertTrue(data["adoptable"])
+        self.assertEqual(self.client.get("/api/catalog/").get_json()["total"], before)
+        self.assertEqual(calls[0]["feature"], "F10.4")
+        run = self._runs()[0]
+        self.assertEqual((run["provider"], run["model"], run["ok"]), ("anthropic", "claude-test-1", 1))
+        self.assertTrue(run["input_hash"] and run["started_at"] and run["finished_at"])
+        self.assertNotIn("sk-", json.dumps(run))
+
+    @unittest.skipIf(ai_fakes.REAL, "needs fake")
+    def test_adopt_with_edit_creates_card_linked_and_labelled(self):
+        ai_fakes.install(self, DRAFT)
+        data = self.client.post("/api/catalog/ai-draft", json={"source_ids": ["mat_seed01"]}).get_json()
+        edited = dict(data["draft"], title="사람이 고친 제목")
+        resp = self.client.post(f"/api/catalog/ai-draft/{data['ai']['run_id']}/adopt", json=edited)
+        self.assertEqual(resp.status_code, 201, resp.get_json())
+        detail = resp.get_json()
+        self.assertEqual(detail["item"]["title"], "사람이 고친 제목")
+        self.assertEqual(detail["item"]["ai_draft"]["label"], "AI 초안 (claude-test-1)")
+        self.assertEqual([l["id"] for l in detail["links"]["sources"]], ["mat_seed01"])
+        self.assertEqual(detail["card"]["status"], "hold")  # draft adoption is not approval
+        again = self.client.post(f"/api/catalog/ai-draft/{data['ai']['run_id']}/adopt", json=edited)
+        self.assertEqual(again.status_code, 409)
+
+    @unittest.skipIf(ai_fakes.REAL, "needs fake")
+    def test_failure_and_garbage_fall_back_to_manual(self):
+        ai_fakes.install(self, None)
+        data = self.client.post("/api/catalog/ai-draft", json={"source_ids": ["mat_seed01"]}).get_json()
+        self.assertIsNone(data["draft"])
+        self.assertFalse(data["adoptable"])
+        self.assertEqual(data["ai"]["label"], "수동 작성")
+        self.assertEqual(self._runs()[-1]["ok"], 0)
+        self.assertIn("boom", self._runs()[-1]["error"])
+        ai_fakes.install(self, "not json at all")
+        data = self.client.post("/api/catalog/ai-draft", json={"source_ids": ["mat_seed01"]}).get_json()
+        self.assertIsNone(data["draft"])
+        self.assertEqual(self._runs()[-1]["error"], "unparseable_response")
+
+    def test_missing_source_rejected_and_manual_create_unchanged(self):
+        ai_fakes.install(self, DRAFT)
+        r = self.client.post("/api/catalog/ai-draft", json={"source_ids": ["mat_nope"]})
+        self.assertEqual(r.status_code, 422)
+        r = self.client.post("/api/catalog/ai-draft", json={"source_ids": []})
+        self.assertEqual(r.status_code, 422)
+        self.assertEqual(self.client.post("/api/catalog/", json=_card_payload()).status_code, 201)
 
 
 if __name__ == "__main__":

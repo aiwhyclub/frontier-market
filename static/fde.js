@@ -251,12 +251,121 @@
       el('p', { className: 'fde-note', text: '기업용 개선 결과와 구매자 납품은 분리해서 기록해요.' })
     ]));
 
+    root.appendChild(aiProposalSection(container, p, f));
+    root.appendChild(pnlSection(container, p, f));
+
     var edit = el('button', { type: 'button', className: 'btn primary', text: '정보 수정' });
     edit.addEventListener('click', function () { openEdit(container, p); });
     root.appendChild(el('div', { className: 'fde-actions' }, [edit]));
 
     container.textContent = '';
     container.appendChild(root);
+  }
+
+  /* F10.5: AI 범위·교육·도구 제안 초안. 읽고 고쳐 채택해도 실제 현장 설치·성과로 표시하지 않는다. */
+  function aiProposalSection(container, p, f) {
+    var box = el('div', {});
+    var saved = f.ai_proposal;
+    var children = [];
+    if (saved) {
+      children.push(el('p', { className: 'fde-note', text: saved.label + ' — 채택한 제안 (' + (saved.adopted_at || '') + ')' }));
+      children.push(el('dl', {}, [line('범위 제안', saved.scope), line('교육 제안', saved.training), line('도구 제안', saved.tools)]));
+      children.push(el('p', { className: 'fde-note', text: saved.note }));
+    } else {
+      children.push(el('p', { className: 'fde-note', text: '채택한 AI 제안이 없어요. 범위·단계는 직접 입력해도 됩니다.' }));
+    }
+    var status = el('p', { className: 'fde-note', role: 'status', id: 'fde-ai-status' });
+    var btn = el('button', { type: 'button', className: 'btn', text: 'AI 범위·교육·도구 제안 초안 만들기', id: 'fde-ai-make' });
+    var result = el('div', { id: 'fde-ai-result' });
+    btn.addEventListener('click', function () {
+      btn.setAttribute('disabled', '');
+      result.textContent = '';
+      request('POST', '/api/fde/projects/' + encodeURIComponent(p.id) + '/ai-draft').then(function (d) {
+        if (!d.draft) {
+          status.textContent = 'AI 초안을 만들지 않았어요(' + (d.ai.error || 'AI 미채택') + '). 수동 입력을 계속 쓰세요.';
+          return;
+        }
+        status.textContent = d.ai.label + ' — 아직 저장되지 않은 제안입니다. ' + d.note;
+        renderProposalForm(container, p, d, result);
+      }, function (err) { status.textContent = err.userMessage || '초안을 만들지 못했어요.'; })
+        .then(function () { btn.removeAttribute('disabled'); });
+    });
+    return section('AI 제안 초안 (선택)', children.concat([btn, status, result]));
+  }
+
+  function renderProposalForm(container, p, d, result) {
+    var inputs = {};
+    var form = el('form', { className: 'fde-ai-form' });
+    [['scope', '범위 제안'], ['training', '교육 제안'], ['tools', '도구 제안']].forEach(function (f) {
+      var input = el('textarea', { id: 'fde-ai-' + f[0], rows: '4' });
+      input.value = d.draft[f[0]] || '';
+      inputs[f[0]] = input;
+      form.appendChild(el('div', {}, [el('label', { for: 'fde-ai-' + f[0], text: f[1] }), input]));
+    });
+    var msg = el('p', { className: 'fde-note', role: 'status' });
+    form.appendChild(msg);
+    form.appendChild(el('button', { type: 'submit', className: 'btn primary', text: '수정 내용으로 제안 채택 (실제 결과 아님)' }));
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var body = { expected_version: p.version };
+      Object.keys(inputs).forEach(function (k) { body[k] = inputs[k].value.trim(); });
+      request('POST', '/api/fde/projects/' + encodeURIComponent(p.id) + '/ai-draft/' + encodeURIComponent(d.ai.run_id) + '/adopt', body)
+        .then(function () { openDetail(container, p.id); },
+          function (err) { msg.textContent = withFields(err).userMessage; });
+    });
+    result.appendChild(form);
+  }
+
+  /* F6.5: 선택 가정 손익. 기업 AX 0원·현장 인수·실수금과 섞지 않는다. */
+  function pnlSection(container, p, f) {
+    var pnl = f.pnl;
+    var children = [];
+    if (pnl) {
+      children.push(el('p', { className: 'fde-note', text: pnl.label + ' · 통화 ' + pnl.currency + ' · 단위 ' + pnl.unit }));
+      children.push(el('dl', {}, [
+        line('가정 가격', pnl.price + ' ' + pnl.currency), line('가정 원가', pnl.cost + ' ' + pnl.currency),
+        line('가정 이익', pnl.margin + ' ' + pnl.currency), line('가정 이익률', pnl.margin_rate_label)
+      ]));
+      children.push(el('p', { className: 'fde-note', text: pnl.note }));
+    } else {
+      children.push(el('p', { className: 'fde-note', text: '가정 손익을 입력하지 않았어요. 선택 기능이며 비워 두어도 됩니다.' }));
+    }
+    children.push(el('p', { className: 'fde-note', text: '기업 AX 비용은 항상 0원이에요. 위 값은 별도의 가정이며 현장 인수 결과나 실제로 받은 금액이 아닙니다.' }));
+    var btn = el('button', { type: 'button', className: 'btn', text: pnl ? '가정 손익 수정' : '가정 손익 입력' });
+    btn.addEventListener('click', function () { openPnl(container, p, pnl); });
+    children.push(btn);
+    if (pnl) {
+      var clear = el('button', { type: 'button', className: 'btn', text: '가정 손익 지우기' });
+      clear.addEventListener('click', function () {
+        request('DELETE', '/api/fde/projects/' + encodeURIComponent(p.id) + '/pnl', { expected_version: p.version })
+          .then(function () { openDetail(container, p.id); });
+      });
+      children.push(clear);
+    }
+    return section('가정 손익 (선택)', children);
+  }
+
+  function openPnl(container, p, pnl) {
+    window.FMForms.openForm({
+      title: '가정 손익 입력 (가정값, 실제 금액 아님)',
+      submitLabel: '저장',
+      fields: [
+        { name: 'currency', label: '통화 (KRW·USD·JPY·EUR)', type: 'text', required: true },
+        { name: 'price', label: '가정 가격 (숫자만, 예: 1200000 또는 12000.00)', type: 'text', required: true },
+        { name: 'cost', label: '가정 원가 (숫자만)', type: 'text', required: true },
+        { name: 'unit', label: '단위 (예: 프로젝트 1건)', type: 'text', required: true },
+        { name: 'note', label: '가정 근거 메모', type: 'text', required: false }
+      ],
+      onSubmit: function (values) {
+        var body = { expected_version: p.version, currency: values.currency.toUpperCase(), price: values.price,
+          cost: values.cost, unit: values.unit };
+        if (values.note) body.note = values.note;
+        return request('PUT', '/api/fde/projects/' + encodeURIComponent(p.id) + '/pnl', body).then(function () {
+          window.FMForms.showToast('가정 손익을 저장했어요. 실제 금액이 아니에요.');
+          openDetail(container, p.id);
+        }, function (err) { throw withFields(err); });
+      }
+    });
   }
 
   function openEdit(container, p) {

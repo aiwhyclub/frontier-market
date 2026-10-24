@@ -11,6 +11,7 @@ from contextlib import closing
 from flask import Blueprint, Response, current_app, jsonify, request
 
 from backend import db
+from backend.features import aidraft
 
 bp = Blueprint("company", __name__, url_prefix="/api/company")
 
@@ -46,6 +47,7 @@ SCHEMA_STATEMENTS = [
 def init_schema(conn):
     for stmt in SCHEMA_STATEMENTS:
         conn.execute(stmt)
+    aidraft.init_schema(conn)
 
 
 def _error(status, code, message, **extra):
@@ -308,6 +310,8 @@ def _build_package(conn, company_id, gate, now):
         "rights": rights,
         "environment_definition": {"kind": "synthetic-rule", "note": "합성 규칙 환경(외부 실행 없음)"},
     }
+    if gate.get("ai_draft"):
+        package["ai_drafts"] = [gate["ai_draft"]]
     text = db.canonical_json(package)
     sha = hashlib.sha256(text.encode("utf-8")).hexdigest()
     return package, text, sha
@@ -403,11 +407,8 @@ def check_gate():
     return jsonify(allowed=allowed, errors=gate["errors"], holds=gate["holds"], checked_at=_now())
 
 
-@bp.post("/companies")
-def create_company():
-    body = request.get_json(silent=True)
-    if not isinstance(body, dict):
-        return _error(400, "bad_request", "JSON 객체를 보내세요.")
+def _create(body, draft=None, run_id=None):
+    """Create a company through the creation gate. `draft` is a human-reviewed AI draft for the snapshot."""
     with closing(_conn()) as conn:
         now = _now()
         with db.write_transaction(conn):
@@ -418,6 +419,17 @@ def create_company():
             if gate["holds"]:
                 return jsonify(error={"code": "hold", "message": "권리·검토 조건이 부족해 회사를 만들지 않았습니다."},
                                holds=gate["holds"]), 409
+            if draft is not None:
+                run = aidraft.get_run(conn, run_id, "F10.6")
+                if run is None or not run["ok"]:
+                    return _error(404, "not_found", "채택할 수 있는 AI 초안을 찾을 수 없습니다.")
+                if run["adopted_at"]:
+                    return _error(409, "already_adopted", "이미 채택한 AI 초안입니다.")
+                gate["ai_draft"] = {**draft, "run_id": run_id, "model": run["model"],
+                                    "label": aidraft.label(run["model"]), "origin": "ai_draft",
+                                    "human_reviewed": True, "model_training_performed": False,
+                                    "note": AI_NOTE}
+                aidraft.mark_adopted(conn, run_id)
             company_id = db.create_record(
                 conn, "companies", title=gate["name"], status="active", synthetic=True,
                 fields={"purpose": gate["purpose"], "work_ids": [w["id"] for w in gate["works"]],
@@ -444,6 +456,76 @@ def create_company():
                              changes={"fields": {**{k: record[k] for k in (
                                  "purpose", "work_ids", "catalog_id", "project_id")}, **record_fields}})
     return jsonify(id=company_id, package_sha256=sha, package_id=package_id), 201
+
+
+@bp.post("/companies")
+def create_company():
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict):
+        return _error(400, "bad_request", "JSON 객체를 보내세요.")
+    return _create(body)
+
+
+AI_SYSTEM = (
+    "당신은 숙련 작업 기록을 회사 문서와 학습 사례로 정리하는 보조자입니다. 주어진 검증된 작업만 근거로 "
+    "JSON 객체 하나만 출력합니다. 키: document_title, document_body, learning_case. "
+    "근거에 없는 사실을 만들지 않고 모델을 실제로 훈련했다고 쓰지 않습니다.")
+AI_NOTE = ("AI 초안을 사람이 검토·수정해 채택한 문서입니다. 권리·사람 검증 게이트를 통과한 작업만 근거이며, "
+           "실제 모델 훈련을 수행했다는 뜻이 아닙니다.")
+DRAFT_LIMITS = {"document_title": 120, "document_body": 4000, "learning_case": 2000}
+
+
+@bp.get("/ai-status")
+def ai_status():
+    return jsonify(aidraft.status("F10.6"))
+
+
+@bp.post("/ai-draft")
+def ai_draft():
+    """F10.6: only after the creation gate passes (so rights-blocked material is never sent to a model)."""
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict):
+        return _error(400, "bad_request", "JSON 객체를 보내세요.")
+    with closing(_conn()) as conn:
+        with db.write_transaction(conn):
+            gate = _creation_gate(conn, body, _now())
+            if gate["errors"]:
+                return jsonify(error={"code": "prerequisite", "message": "관계·검증 조건을 먼저 보완하세요."},
+                               errors=gate["errors"]), 422
+            if gate["holds"]:
+                return jsonify(error={"code": "hold", "message": "권리·검토 조건이 부족해 AI 초안을 만들지 않았습니다."},
+                               holds=gate["holds"]), 409
+            prompt = "\n\n".join(f"[작업 {w['id']}] {w['title']}\n{(w.get('body') or '')[:1500]}"
+                                  for w in gate["works"])
+            parsed, info = aidraft.draft(conn, "F10.6", AI_SYSTEM, prompt, "companies", None,
+                                         detail={"work_ids": [w["id"] for w in gate["works"]]})
+    draft = None
+    if parsed is not None:
+        draft = {k: aidraft.clip(parsed.get(k), lim) for k, lim in DRAFT_LIMITS.items()}
+        draft = draft if any(draft.values()) else None
+    if draft is None and info["ok"]:
+        info.update(ok=False, error="empty_draft", label=aidraft.label(None), mode="manual")
+    return jsonify(draft=draft, ai=info, adoptable=draft is not None, note=AI_NOTE)
+
+
+@bp.post("/ai-draft/<run_id>/adopt")
+def ai_draft_adopt(run_id):
+    """Adopt an edited draft: the whole creation gate runs again at this moment, then it joins the snapshot."""
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict):
+        return _error(400, "bad_request", "JSON 객체를 보내세요.")
+    raw = body.get("draft")
+    if not isinstance(raw, dict) or set(raw) - set(DRAFT_LIMITS):
+        return _error(422, "validation_error", "초안(draft) 객체가 필요합니다.")
+    draft = {}
+    for key, limit in DRAFT_LIMITS.items():
+        value = raw.get(key, "")
+        if not isinstance(value, str) or len(value.strip()) > limit:
+            return _error(422, "validation_error", f"{key}는 {limit}자 이하 문자열이어야 합니다.")
+        draft[key] = value.strip()
+    if not any(draft.values()):
+        return _error(422, "validation_error", "초안 내용이 비어 있습니다.")
+    return _create({k: v for k, v in body.items() if k != "draft"}, draft, run_id)
 
 
 @bp.get("/companies/<cid>/export")
