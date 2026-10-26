@@ -7,3 +7,9 @@ __pycache__/
 .env.deploy
 backups/
 .env.neon
+
+# local-only
+.DS_Store
+.claude/
+.agents/
+works/
